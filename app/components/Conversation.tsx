@@ -33,11 +33,12 @@ import { useAudioStore } from "../context/AudioStore";
  * Conversation element that contains the conversational AI app.
  * @returns {JSX.Element}
  */
-export default function Conversation(): JSX.Element {
+export default function Conversation(): JSX.Element { //main UI component
   /**
    * Custom context providers
    */
-  const { ttsOptions, connection, connectionReady } = useDeepgram();
+  //The purpose of destructuring these particular values from the useDeepgram() hook suggests that they are crucial for managing interactions with the Deepgram services within the component. By extracting them at the top of the component, it allows easy access to these values throughout the rest of the component's code, helping manage the state and behavior related to audio processing and network communication efficiently.
+  const { ttsOptions, connection, connectionReady } = useDeepgram(); //useDeepgram(): This is a custom hook, likely designed to encapsulate the logic and state associated with interacting with the Deepgram API, which provides services like speech recognition and possibly text-to-speech (TTS). Custom hooks in React are used to abstract and reuse logic across different components.
   const { addAudio } = useAudioStore();
   const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
   const { addMessageData } = useMessageData();
@@ -73,12 +74,13 @@ export default function Conversation(): JSX.Element {
   /**
    * Request audio from API
    */
+  //callback for requesting audio
   const requestTtsAudio = useCallback(
     async (message: Message) => {
       const start = Date.now();
       const model = ttsOptions?.model ?? "aura-asteria-en";
 
-      const res = await fetch(`/api/speak?model=${model}`, {
+      const res = await fetch(`/api/speak?model=${model}`, { //api>speak>route.ts
         cache: "no-store",
         method: "POST",
         body: JSON.stringify(message),
@@ -88,6 +90,7 @@ export default function Conversation(): JSX.Element {
 
       const blob = await res.blob();
 
+      //play the audio
       startAudio(blob, "audio/mp3", message.id).then(() => {
         addAudio({
           id: message.id,
@@ -102,11 +105,13 @@ export default function Conversation(): JSX.Element {
     [ttsOptions?.model]
   );
 
+  //state for measuring llm latency
   const [llmNewLatency, setLlmNewLatency] = useState<{
     start: number;
     response: number;
   }>();
 
+  //callback onfinish of text generation
   const onFinish = useCallback(
     (msg: any) => {
       requestTtsAudio(msg);
@@ -114,6 +119,7 @@ export default function Conversation(): JSX.Element {
     [requestTtsAudio]
   );
 
+  //callback function after a response
   const onResponse = useCallback((res: Response) => {
     (async () => {
       setLlmNewLatency({
@@ -123,20 +129,22 @@ export default function Conversation(): JSX.Element {
     })();
   }, []);
 
+  //system message hook initialized with id, role, and content
   const systemMessage: Message = useMemo(
     () => ({
       id: generateRandomString(7),
       role: "system",
-      content: systemContent,
+      content: systemContent, //from the prompt
     }),
     []
   );
 
+  //greeting message hook initialized with id, role, and content
   const greetingMessage: Message = useMemo(
     () => ({
       id: generateRandomString(7),
       role: "assistant",
-      content: contextualGreeting(),
+      content: contextualGreeting(), //from lib/helpers
     }),
     []
   );
@@ -153,8 +161,8 @@ export default function Conversation(): JSX.Element {
     isLoading: llmLoading,
   } = useChat({
     id: "aura",
-    api: "/api/brain",
-    initialMessages: [systemMessage, greetingMessage],
+    api: "/api/brain", //api>brain>route
+    initialMessages: [systemMessage, greetingMessage], //lib/helpers
     onFinish,
     onResponse,
   });
@@ -163,6 +171,7 @@ export default function Conversation(): JSX.Element {
   const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>();
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
 
+  //callback for speech ending  
   const onSpeechEnd = useCallback(() => {
     /**
      * We have the audio data context available in VAD
@@ -193,6 +202,7 @@ export default function Conversation(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneOpen, currentUtterance]);
 
+  //callback for speech starting
   const onSpeechStart = () => {
     /**
      * We have the audio data context available in VAD
