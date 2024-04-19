@@ -6,7 +6,6 @@ import {
   LiveSchema,
   LiveTranscriptionEvents,
   SpeakSchema,
-  //createClient, //added this
 } from "@deepgram/sdk";
 import {
   Dispatch,
@@ -18,9 +17,6 @@ import {
   useState,
 } from "react";
 import { useToast } from "./Toast";
-//const express = require("express"); //added this add to dependencies. had to install fs too.
-//const dotenv = require("dotenv"); //added this. need to add dotenv to install requirements
-//dotenv.config();
 
 type DeepgramContext = {
   ttsOptions: SpeakSchema | undefined;
@@ -146,16 +142,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     if (!connection && !connecting) {
       setConnecting(true);
 
-      // const deepgramClient = createClient(process.env.DEEPGRAM_API_KEY);
-      // const connection = deepgramClient.listen.live({
-      //   model: "nova-2",
-      //   interim_results: true,
-      //   smart_format: true,
-      //   endpointing: 550,
-      //   utterance_end_ms: 1500,
-      //   filler_words: true,
-      // });
-      
       const connection = new LiveClient(
         await getApiKey(),
         {},
@@ -170,7 +156,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       );
 
       setConnection(connection);
-      console.log('connection established');
       setConnecting(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,19 +163,17 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
 
   useEffect(() => {
     // it must be the first open of the page, let's set up the defaults
-    console.log('first page');
+
     /**
      * Default TTS Voice when the app loads.
      */
     if (ttsOptions === undefined) {
-      console.log('ttsOptions');
       setTtsOptions({
         model: "aura-asteria-en",
       });
     }
 
     if (!sttOptions === undefined) {
-      console.log('!sttoptions');
       setSttOptions({
         model: "nova-2",
         interim_results: true,
@@ -202,7 +185,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     }
 
     if (connection === undefined) {
-      console.log('undefined connection, then connect');
       connect();
     }
   }, [connect, connection, sttOptions, ttsOptions]);
@@ -211,7 +193,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     if (connection && connection?.getReadyState() !== undefined) {
       connection.addListener(LiveTranscriptionEvents.Open, () => {
         setConnectionReady(true);
-        console.log('connected');
       });
 
       connection.addListener(LiveTranscriptionEvents.Close, () => {
@@ -219,14 +200,12 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         setConnectionReady(false);
         connection.removeAllListeners();
         setConnection(undefined);
-        console.log('closed');
       });
 
-      connection.addListener(LiveTranscriptionEvents.Error, (err) => {
+      connection.addListener(LiveTranscriptionEvents.Error, () => {
         toast(
-          "An unknown error occured. We'll attempt to reconnect to Deepgram. HELLLLLLO" 
+          "An unknown error occured. We'll attempt to reconnect to Deepgram."
         );
-        console.error(err);
         setConnectionReady(false);
         connection.removeAllListeners();
         setConnection(undefined);
