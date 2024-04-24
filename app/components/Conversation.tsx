@@ -24,6 +24,7 @@ import { InitialLoad } from "./InitialLoad";
 import { MessageMetadata } from "../lib/types";
 import { RightBubble } from "./RightBubble";
 import { systemContent } from "../lib/constants";
+import { articleConversationContent } from "../prompts/articleConversation";
 import { useDeepgram } from "../context/Deepgram";
 import { useMessageData } from "../context/MessageMetadata";
 import { useMicrophone } from "../context/Microphone";
@@ -117,6 +118,7 @@ export default function Conversation(): JSX.Element {
               clearTimeout(waiting);
               setProcessing(false);
             }, 500);
+            //Microphone is turned off when LLM is generating a response. After playing the TTS, turn the mic back on again.
             startMicrophone();
           };
         } else {
@@ -160,6 +162,15 @@ export default function Conversation(): JSX.Element {
     []
   );
 
+  const promptMessage: Message = useMemo(
+    () => ({
+      id: 'AAAA',//LmSwiUg
+      role: "user",
+      content: articleConversationContent,
+    }),
+    []
+  );
+
   /**
    * AI SDK
    */
@@ -174,7 +185,7 @@ export default function Conversation(): JSX.Element {
     id: "aura",
     //api: "/api/brain", //OpenAI
     api: "/api/groq",//Groq
-    initialMessages: [systemMessage, greetingMessage],
+    initialMessages: [systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
   });
@@ -242,7 +253,11 @@ export default function Conversation(): JSX.Element {
   });
 
   useEffect(() => {
-    if (llmLoading) return;
+    if (llmLoading) {
+      //don't listen for voice input while LLM response is generating and displaying
+      stopMicrophone();
+      return;
+    };
     if (!state.llmLatency) return;
 
     const latestLlmMessage: MessageMetadata = {
@@ -270,15 +285,20 @@ export default function Conversation(): JSX.Element {
 
   const startConversation = useCallback(() => {
     if (!initialLoad) return;
-
     setInitialLoad(false);
+
+    // add a stub message data with no latency
+    const promptMetadata: MessageMetadata = {
+      ...promptMessage,
+      ttsModel: state.ttsOptions?.model,
+    };
 
     // add a stub message data with no latency
     const welcomeMetadata: MessageMetadata = {
       ...greetingMessage,
       ttsModel: state.ttsOptions?.model,
     };
-
+    addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
 
     // get welcome audio
@@ -286,13 +306,13 @@ export default function Conversation(): JSX.Element {
   }, [
     addMessageData,
     greetingMessage,
+    promptMessage,
     initialLoad,
     requestWelcomeAudio,
     state.ttsOptions?.model,
   ]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
-    console.log('ontranscript');
     let content = utteranceText(data);
 
     if (content !== "" || data.speech_final) {
@@ -306,15 +326,12 @@ export default function Conversation(): JSX.Element {
 
   useEffect(() => {
     const onOpen = () => {
-      console.log('onOpen');
       state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
     };
 
     if (state.connection) {// && state.connectionReady
-      console.log('if connection, add onOpen');
       state.connection.addListener(LiveTranscriptionEvents.Open, onOpen);
       return () => {
-        console.log('cleanup onOpen');
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
         state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
       };
@@ -456,22 +473,6 @@ export default function Conversation(): JSX.Element {
     }
   }, [chatMessages]);
 
-  // interface InitialLoadProps {
-  //   fn: () => void;
-  //   connecting: boolean; // Define that this component also expects a boolean 'connecting' prop
-  // }
-  
-  // const InitialLoad: React.FC<InitialLoadProps> = ({ fn, connecting }) => {
-  //   // Implementation of the component
-  //   return (
-  //     <div>
-  //       {/* Display something based on 'connecting' */}
-  //       {connecting ? "Connecting..." : "Ready to Start"}
-  //       <button onClick={fn}>Start</button>
-  //     </div>
-  //   );
-  // };
-
   return (
     <>
       <NextUIProvider className="h-full">
@@ -493,9 +494,12 @@ export default function Conversation(): JSX.Element {
                   ) : (
                     <>
                         {chatMessages.length > 0 &&
-                          chatMessages.map((message, i) => (
-                            <ChatBubble message={message} key={i} />
-                          ))}
+                          chatMessages.map((message, i) => {
+                            if(message.id === 'AAAA'){
+                              return null
+                            }
+                            return <ChatBubble message={message} key={i} />
+                          })}
 
                         {currentUtterance && (
                           <RightBubble text={currentUtterance}></RightBubble>

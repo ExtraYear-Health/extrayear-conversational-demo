@@ -7,11 +7,11 @@ import { RightBubble } from "./RightBubble";
 // }
 
 function isUserMessage(message: any): message is Message {
+  
   return message.role === "user";
 }
 
 function isAssistantMessage(message: any): message is Message {
-  console.log('message', message);
   return message.role === "assistant";
 }
 
