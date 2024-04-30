@@ -18,6 +18,9 @@ import {
   contextualGreeting,
   generateRandomString,
   utteranceText,
+  promptTextArray,
+  extractIntroContent,
+  cleanString,
 } from "../lib/helpers";
 import { Controls } from "./Controls";
 import { InitialLoad } from "./InitialLoad";
@@ -28,10 +31,12 @@ import { useDeepgram } from "../context/Deepgram";
 import { useMessageData } from "../context/MessageMetadata";
 import { useMicrophone } from "../context/Microphone";
 import { useAudioStore } from "../context/AudioStore";
+import { useMessageCheck } from "../context/MessageCheck";
 
 import { articleConversationContent } from "../prompts/articleConversation";
 import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
 import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
+import { checkMessagePromptContent } from "../prompts/checkMessage";
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -39,9 +44,12 @@ import { newsArticleConversationContent } from "../prompts/newsArticlesConversat
  */
 export default function Conversation(): JSX.Element {
   const { state, dispatch } = useDeepgram();
+  const { checkMessageWithLLM } = useMessageCheck();
   const { addAudio } = useAudioStore();
   const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
   const { addMessageData } = useMessageData();
+  const [promptLines, setPromptLines] = useState([]);
+  const [introContent, setIntroContent] = useState(null);
   const {
     microphoneOpen,
     queue: microphoneQueue,
@@ -66,12 +74,39 @@ export default function Conversation(): JSX.Element {
    * Refs
    */
   const messageMarker = useRef<null | HTMLDivElement>(null);
+  const mainThread = useRef(true);
 
   /**
    * State
    */
   const [initialLoad, setInitialLoad] = useState(true);
   const [isProcessing, setProcessing] = useState(false);
+  const [processingPrompt, setProcessingPrompt] = useState(true);
+  const [promptLineCount, setPromptLineCount] = useState(0);  // Initialize the counter to 0
+
+  // Effect to process the content once on component mount
+  useEffect(() => {
+    if (processingPrompt) {
+      const promptString = newsArticleConversationContent; 
+      // Check if newsArticleConversationContent is null, undefined, or empty
+      if (!promptString || promptString.trim() === '') {
+        console.log('newsArticleConversationContent is null or empty');
+        // Optional: Handle the case where the content is not valid, e.g., set error state or early exit
+        return; // Early exit from the useEffect if content is invalid
+      }
+  
+      // Convert the imported content into an array of lines
+      const processedLines = promptTextArray(newsArticleConversationContent);
+      const extractedContent = extractIntroContent(newsArticleConversationContent);
+  
+      // Update the state with the processed lines and extracted content
+      setPromptLines(processedLines);
+      setIntroContent(extractedContent);
+      
+      setPromptLineCount(promptLineCount + 2); //Start at line #2
+      setProcessingPrompt(false);
+    }
+  }, [processingPrompt, newsArticleConversationContent]);
 
   /**
    * Request audio from API
@@ -82,18 +117,18 @@ export default function Conversation(): JSX.Element {
       const model = state.ttsOptions?.model ?? "aura-asteria-en";
 
       //Deepgram TTS
-      const res = await fetch(`/api/speak?model=${model}`, {
-        cache: "no-store",
-        method: "POST",
-        body: JSON.stringify(message),
-      });
-    
-      // //ElevenLabs TTS
-      // const res = await fetch('/api/natural-speak', {
+      // const res = await fetch(`/api/speak?model=${model}`, {
       //   cache: "no-store",
       //   method: "POST",
       //   body: JSON.stringify(message),
       // });
+    
+      // //ElevenLabs TTS
+      const res = await fetch('/api/natural-speak', {
+        cache: "no-store",
+        method: "POST",
+        body: JSON.stringify(message),
+      });
 
       const headers = res.headers;
       const blob = await res.blob();
@@ -132,6 +167,7 @@ export default function Conversation(): JSX.Element {
     [state.ttsOptions?.model, addAudio, startAudio, stopMicrophone, startMicrophone, player]
   );
 
+  //An optional callback that will be called when the chat stream ends
   const onFinish = useCallback(
     (msg: any) => {
       requestTtsAudio(msg);
@@ -139,6 +175,7 @@ export default function Conversation(): JSX.Element {
     [requestTtsAudio]
   );
 
+  //An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging
   const onResponse = useCallback((res: Response) => {
     (async () => {
       const start = Number(res.headers.get("x-llm-start"));
@@ -156,23 +193,17 @@ export default function Conversation(): JSX.Element {
     []
   );
 
-  const greetingMessage: Message = useMemo(
-    () => ({
-      id: generateRandomString(7),
-      role: "assistant",
-      content: contextualGreeting(),
-    }),
-    []
-  );
-
-  const promptMessage: Message = useMemo(
-    () => ({
-      id: 'AAAA',//LmSwiUg
-      role: "user",
-      content: newsArticleConversationContent,
-    }),
-    []
-  );
+  const greetingMessage: Message = useMemo(() => ({
+    id: generateRandomString(7),
+    role: "assistant",
+    content: introContent,
+  }), [introContent]);  // Include the content variable in the dependency array
+  
+  const promptMessage: Message = useMemo(() => ({
+    id: 'AAAA',  // Consider using a unique ID for each instance if needed
+    role: "user",
+    content: promptLines[0],
+  }), [promptLines[0]]); 
 
   /**
    * AI SDK
@@ -182,8 +213,9 @@ export default function Conversation(): JSX.Element {
     append,
     handleInputChange,
     input,
-    handleSubmit,
+    //handleSubmit,
     isLoading: llmLoading,
+    setInput,
   } = useChat({
     id: "aura",
     //api: "/api/brain", //OpenAI
@@ -210,10 +242,13 @@ export default function Conversation(): JSX.Element {
         if (currentUtterance) {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
-          append({
-            role: "user",
-            content: currentUtterance,
-          });
+          const modifiedInput = processString(currentUtterance); 
+          clearTimeout(failsafeTimeout);
+          appendUserMessage(modifiedInput);
+          // append({
+          //   role: "user",
+          //   content: modifiedInput,
+          // });
           clearTranscriptParts();
           setCurrentUtterance(undefined);
         }
@@ -262,6 +297,9 @@ export default function Conversation(): JSX.Element {
       return;
     };
     if (!state.llmLatency) return;
+
+    //Remove extra characters from LLM response.
+    chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
 
     const latestLlmMessage: MessageMetadata = {
       ...chatMessages[chatMessages.length - 1],
@@ -388,11 +426,13 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
+      const modifiedInput = processString(content); 
       clearTimeout(failsafeTimeout);
-      append({
-        role: "user",
-        content,
-      });
+      appendUserMessage(modifiedInput);
+      // append({
+      //   role: "user",
+      //   content: modifiedInput,
+      // });
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
@@ -403,6 +443,131 @@ export default function Conversation(): JSX.Element {
     failsafeTimeout,
     failsafeTriggered,
   ]);
+
+  const {
+    messages: checkChatMessages,
+    append: checkMessagesAppend,
+    //handleInputChange,
+    //input,
+    //handleSubmit,
+    isLoading: checkMessagesLlmLoading,
+    //setInput,
+  } = useChat({
+    id: "brainCheck",
+    api: "/api/brainCheck", //OpenAI
+    //api: "/api/groq",//Groq
+    //initialMessages: [systemMessage, promptMessage, greetingMessage],
+    onFinish: (msg) => console.log('Chat finished:', msg),
+    onResponse: (res) => console.log('Response received:', res)
+  });
+  const [checkResponse, setCheckResponse] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [userInput, setUserInput] = useState(null);
+
+  function extractProblemAnswer(content: string): string | null {
+    const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
+    const match = content.match(regex);
+    return match ? match[1] : null;
+  }
+
+  const checkMessage = (inputString) => {
+    console.log('spaghett');
+    setLoading(true);
+    const patientResponse = inputString;
+    const therapistPrompt = chatMessages[chatMessages.length -1].content;
+
+    if (!therapistPrompt) {
+      setLoading(false);
+      return; // Early return if there is no therapist prompt
+    }
+
+    const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
+
+    console.log(promptInput);
+
+    checkMessagesAppend({
+      role: "user",
+      content: promptInput,
+    });
+  }
+
+  useEffect(() => {
+    console.log('apple');
+    if (checkChatMessages.length > 0) {
+      const lastMessageContent = checkChatMessages[checkChatMessages.length - 1]?.content;
+      if (lastMessageContent) {
+        const answer = extractProblemAnswer(lastMessageContent);
+        if (answer === 'true' || answer === 'True'){
+          setCheckResponse(true);
+          setLoading(false);
+        }
+        else{
+          setCheckResponse(false);
+          setLoading(false);
+        }
+      }
+      // if (!checkMessagesLlmLoading) {
+      //   setLoading(false);
+      // }
+    }
+  }, [checkChatMessages, checkMessagesLlmLoading]);
+
+  useEffect(() => {
+    console.log('pear');
+    if (checkChatMessages.length > 0  && !loading) {
+      console.log('input1', userInput);
+
+      const response = ' <response> ' + userInput + ' </response>';
+      console.log(response);
+      let instructions = '';
+      let nextInstructions = '';
+      let newPrompt = '';
+
+      if (checkResponse){
+        console.log('text response true');
+        instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
+        nextInstructions = ' <instructions> ' + promptLines[promptLineCount] + ' </instructions>';
+        setPromptLineCount(promptLineCount + 1);
+        newPrompt = instructions + ' <mainthread> ' + response + nextInstructions + ' </mainthread>';
+      }else{
+        console.log('text response false');
+        instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
+        nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.'
+        nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
+        newPrompt = instructions + '<tangentthread> ' + response + nextInstructions + ' </tangentthread>';
+      }
+      console.log('append new prompt');
+      appendUserMessage(newPrompt);
+    }
+  }, [userInput, checkResponse]);
+
+  const appendUserMessage = (inputString) => {
+    // Append the modified input to the chat, triggering the LLM to process it
+    append({
+      role: "user",
+      content: inputString,
+    });
+  };
+
+
+  const handleSubmit = useCallback(async (event) => {
+    event.preventDefault(); // Prevent the default form submission behavior
+
+    console.log('input', input);
+
+    if (!input.trim()) {
+        console.log("Input is empty or only whitespace.");
+        return; // Avoid sending empty messages
+    }
+
+    setUserInput(input);
+
+    // Modify the input text before sending it to the LLM
+    checkMessage(input);
+
+     // Clear the input field after sending
+     setInput(""); // Assuming `setInput` is the state setter for your input state
+}, [input, append, handleInputChange]);
 
   /**
    * magic microphone audio queue processing
@@ -466,14 +631,17 @@ export default function Conversation(): JSX.Element {
     };
   }, [state.connection, state.connectionReady, microphoneOpen]);
 
-
-  // this works
   useEffect(() => {
-    if (messageMarker.current) {
-      messageMarker.current.scrollIntoView({
-        behavior: "auto",
-      });
-    }
+    const timeoutId = setTimeout(() => {
+      if (messageMarker.current) {
+        messageMarker.current.scrollIntoView({
+          behavior: "smooth",  // Changed to 'smooth' for a better visual effect
+          block: "end", // Ensures the bottom of the element is aligned to the visible area
+        });
+      }
+    }, 100);  // Adding a small delay to ensure the DOM has updated
+  
+    return () => clearTimeout(timeoutId);  // Cleanup to avoid unintended scrolls
   }, [chatMessages]);
 
   return (
@@ -496,9 +664,9 @@ export default function Conversation(): JSX.Element {
                     />
                   ) : (
                     <>
-                        {chatMessages.length > 0 &&
+                        {!processingPrompt && chatMessages.length > 0 &&
                           chatMessages.map((message, i) => {
-                            if(message.id === 'AAAA'){
+                            if (message.id === 'AAAA'){ //|| !message.content
                               return null
                             }
                             return <ChatBubble message={message} key={i} />

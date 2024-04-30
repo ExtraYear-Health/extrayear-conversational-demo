@@ -98,11 +98,69 @@ function generateRandomString(length: number): string {
   return 'test';
 }
 
+/**
+ * Splits the input string into an array of non-empty lines.
+ * 
+ * @param {string} text This is the text to be split into lines.
+ * @returns {string[]} Returns an array of non-empty strings, each representing a line from the input string.
+ */
+function promptTextArray(text: string): string[] {
+  // Split the string by newline characters to create an array of lines
+  // Filter out any empty lines for cleaner results
+  return text.split('\n').filter(line => line.trim() !== '');
+}
+
+/**
+ * Extracts content enclosed within custom <intro> tags from a given string.
+ * @param {string} content The text content from which to extract the intro section.
+ * @returns {string|null} The extracted intro content, or null if no intro section is found.
+ */
+function extractIntroContent(content: string): string | null {
+  const introRegex = /<intro>(.*?)<intro\/>/s;  // Use the 's' flag for dotAll, allowing '.' to match newline characters
+  const match = content.match(introRegex);
+  return match ? match[1].trim() : null;  // Return the captured group if the pattern matches
+};
+
+/**
+ * Extracts content enclosed within custom <response> tags from a given string.
+ * @param {string} inputString The text content from which to extract the response section.
+ * @returns {string|null} The extracted response content, or null if no response section is found.
+ */
+function extractResponseText(inputString) {
+  // Regular expression to find text within <response></response> tags
+  const regex = /<response>(.*?)<\/response>/;
+  // Use the regex to search the input string
+  const match = inputString.match(regex);
+  // Check if there is a match; if so, return the first capture group
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Cleans an input string by removing quotes and brackets from its beginning and end, and replaces internal newlines.
+ * @param {string} inputString The text content to be cleaned.
+ * @returns {string} The cleaned string with quotes and brackets removed from the beginning and end, and internal newlines replaced.
+ */
+function cleanString(inputString) {
+  // Remove multiple quotes from the beginning of the string
+  let quotesRemoved = inputString.replace(/^['"]+|['"]+$/g, '');
+  let cleanedString = quotesRemoved.replace(/^[\(\)\[\]\{\}]+|[\(\)\[\]\{\}]+$/g, '');
+  
+  // Replace newlines not at the start or end of the string
+  let newlinesRemoved = cleanedString.replace(/(?<!^)\n(?!$)/g, '');
+
+  return newlinesRemoved;
+}
+
+
 export {
   generateRandomString,
   contextualGreeting,
   contextualHello,
   getUserMessages,
   getConversationMessages,
-  utteranceText
+  utteranceText,
+  promptTextArray,
+  extractIntroContent,
+  extractResponseText,
+  cleanString,
 };
