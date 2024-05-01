@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     const response = await groq.chat.completions.create({
       messages: messages,
       //model: "Llama3-8b-8192",
-      model: "mixtral-8x7b-32768",
+      //model: "mixtral-8x7b-32768",
+      model: "Llama3-70b-8192",
       temperature: 1.0,
       max_tokens: 1024,
       top_p: 1,
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     // Check response structure and serialize as needed
     const textResponse = JSON.stringify(response.choices[0]?.message?.content); // Convert the response to a JSON string if it's an object
 
+   console.log('quickbraincheck', textResponse);
     // if (!response?.choices[0]?.message?.content) {
     //   return new NextResponse("Unable to get response from API.", {
     //     status: 500,

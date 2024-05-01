@@ -117,18 +117,18 @@ export default function Conversation(): JSX.Element {
       const model = state.ttsOptions?.model ?? "aura-asteria-en";
 
       //Deepgram TTS
-      // const res = await fetch(`/api/speak?model=${model}`, {
-      //   cache: "no-store",
-      //   method: "POST",
-      //   body: JSON.stringify(message),
-      // });
-    
-      // //ElevenLabs TTS
-      const res = await fetch('/api/natural-speak', {
+      const res = await fetch(`/api/speak?model=${model}`, {
         cache: "no-store",
         method: "POST",
         body: JSON.stringify(message),
       });
+    
+      // //ElevenLabs TTS
+      // const res = await fetch('/api/natural-speak', {
+      //   cache: "no-store",
+      //   method: "POST",
+      //   body: JSON.stringify(message),
+      // });
 
       const headers = res.headers;
       const blob = await res.blob();
@@ -218,8 +218,8 @@ export default function Conversation(): JSX.Element {
     setInput,
   } = useChat({
     id: "aura",
-    //api: "/api/brain", //OpenAI
-    api: "/api/groq",//Groq
+    api: "/api/brain", //OpenAI
+    //api: "/api/groq",//Groq
     initialMessages: [systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
@@ -444,6 +444,30 @@ export default function Conversation(): JSX.Element {
     failsafeTriggered,
   ]);
 
+  /**
+   * Check if response is a good answer to the prompt
+   */
+
+  // const [checkResponse, setCheckResponse] = useState(false);
+  // const [loading, setLoading] = useState(false);
+  const [userInput, setUserInput] = useState(null);
+  const [responseStarted, setResponseStarted] = useState(false);
+
+  const checkSystemMessage:Message = useMemo(() => ({
+    id: generateRandomString(7),
+    role: 'system',
+    content: 'You are a helpful assistant.',
+  }), []);
+
+  // //An optional callback that will be called when the chat stream ends
+  // const onCheckMessageResponse = useCallback((res: Response) => {
+  //   console.log('check message response');  
+  //   setResponseStarted(true);
+  //   },
+  //   [responseStarted]
+  // );
+
+
   const {
     messages: checkChatMessages,
     append: checkMessagesAppend,
@@ -451,18 +475,19 @@ export default function Conversation(): JSX.Element {
     //input,
     //handleSubmit,
     isLoading: checkMessagesLlmLoading,
+    stop: checkMessagesStop,
     //setInput,
   } = useChat({
     id: "brainCheck",
-    api: "/api/brainCheck", //OpenAI
-    //api: "/api/groq",//Groq
-    //initialMessages: [systemMessage, promptMessage, greetingMessage],
+    //api: "/api/brainCheck", //OpenAI
+    api: "/api/quickBrainCheck",//Groq
+    initialMessages: [checkSystemMessage],
     onFinish: (msg) => console.log('Chat finished:', msg),
-    onResponse: (res) => console.log('Response received:', res)
+    onResponse: res => {
+      console.log('check message response', res);
+      setResponseStarted(true);
+    }
   });
-  const [checkResponse, setCheckResponse] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [userInput, setUserInput] = useState(null);
 
   function extractProblemAnswer(content: string): string | null {
     const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
@@ -471,75 +496,101 @@ export default function Conversation(): JSX.Element {
   }
 
   const checkMessage = (inputString) => {
-    console.log('spaghett');
-    setLoading(true);
     const patientResponse = inputString;
     const therapistPrompt = chatMessages[chatMessages.length -1].content;
-
-    if (!therapistPrompt) {
-      setLoading(false);
-      return; // Early return if there is no therapist prompt
-    }
-
+    if (!therapistPrompt) { return };
     const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
-
     console.log(promptInput);
-
     checkMessagesAppend({
       role: "user",
       content: promptInput,
     });
-  }
+  };
 
   useEffect(() => {
-    console.log('apple');
-    if (checkChatMessages.length > 0) {
+    if (checkChatMessages.length > 0  && responseStarted) {
+      if (checkChatMessages[checkChatMessages.length - 1]?.role === 'user'){ return };
       const lastMessageContent = checkChatMessages[checkChatMessages.length - 1]?.content;
       if (lastMessageContent) {
         const answer = extractProblemAnswer(lastMessageContent);
-        if (answer === 'true' || answer === 'True'){
-          setCheckResponse(true);
-          setLoading(false);
+        console.log('extracted answer', answer);
+        const response = ' <response> ' + userInput + ' </response>';
+        let instructions = '';
+        let nextInstructions = '';
+        let newPrompt = '';
+        if (answer === 'true' || answer === 'True' || answer === 'TRUE') {
+          console.log('text response true');
+          instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
+          nextInstructions = ' <instructions> Next instruction here </instructions>';
+          newPrompt = instructions + response + nextInstructions;
+          setResponseStarted(false);
+        } else {
+          console.log('text response false');
+          instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
+          nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.';
+          nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
+          newPrompt = instructions + response + nextInstructions;
+          setResponseStarted(false);
         }
-        else{
-          setCheckResponse(false);
-          setLoading(false);
-        }
+        console.log('append new prompt');
+        setUserInput(null);
+        checkMessagesStop();
+        appendUserMessage(newPrompt);
       }
-      // if (!checkMessagesLlmLoading) {
-      //   setLoading(false);
-      // }
     }
-  }, [checkChatMessages, checkMessagesLlmLoading]);
+  }, [checkChatMessages, userInput]); //responseStarted
 
-  useEffect(() => {
-    console.log('pear');
-    if (checkChatMessages.length > 0  && !loading) {
-      console.log('input1', userInput);
+  // useEffect(() => {
+  //   console.log('apple');
+  //   if (checkChatMessages.length > 0 && responseStarted) {
+  //     const lastMessageContent = checkChatMessages[checkChatMessages.length - 1]?.content;
+  //     if (lastMessageContent) {
+  //       const answer = extractProblemAnswer(lastMessageContent);
+  //       console.log('extracted answer', answer);
+  //       if (answer === 'true' || answer === 'True' || answer === 'TRUE') {
+  //         setCheckResponse(true);
+  //         setLoading(false);
+  //         setResponseStarted(false);
+  //         console.log('set to true');
+  //       } else {
+  //         setCheckResponse(false);
+  //         setLoading(false);
+  //         setResponseStarted(false);
+  //         console.log('set to false');
+  //       }
+  //     }
+  //   }
+  // }, [checkChatMessages, responseStarted]);
 
-      const response = ' <response> ' + userInput + ' </response>';
-      console.log(response);
-      let instructions = '';
-      let nextInstructions = '';
-      let newPrompt = '';
+  // useEffect(() => {
+  //   console.log('pear');
+  //   if (checkChatMessages.length > 0 && userInput && !loading) {
+  //     console.log('input1', userInput);
 
-      if (checkResponse){
-        console.log('text response true');
-        instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
-        nextInstructions = ' <instructions> ' + promptLines[promptLineCount] + ' </instructions>';
-        setPromptLineCount(promptLineCount + 1);
-        newPrompt = instructions + ' <mainthread> ' + response + nextInstructions + ' </mainthread>';
-      }else{
-        console.log('text response false');
-        instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
-        nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.'
-        nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
-        newPrompt = instructions + '<tangentthread> ' + response + nextInstructions + ' </tangentthread>';
-      }
-      console.log('append new prompt');
-      appendUserMessage(newPrompt);
-    }
-  }, [userInput, checkResponse]);
+  //     const response = ' <response> ' + userInput + ' </response>';
+  //     console.log(response);
+  //     let instructions = '';
+  //     let nextInstructions = '';
+  //     let newPrompt = '';
+
+  //     if (checkResponse) {
+  //       console.log('text response true');
+  //       instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
+  //       nextInstructions = ' <instructions> Next instruction here </instructions>';
+  //       newPrompt = instructions + response + nextInstructions;
+  //     } else {
+  //       console.log('text response false');
+  //       instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
+  //       nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.';
+  //       nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
+  //       newPrompt = instructions + response + nextInstructions;
+  //     }
+  //     console.log('append new prompt');
+  //     setUserInput(null);
+  //     checkMessagesStop();
+  //     appendUserMessage(newPrompt);
+  //   }
+  // }, [userInput, checkResponse, checkMessagesStop]);
 
   const appendUserMessage = (inputString) => {
     // Append the modified input to the chat, triggering the LLM to process it
@@ -549,22 +600,18 @@ export default function Conversation(): JSX.Element {
     });
   };
 
-
   const handleSubmit = useCallback(async (event) => {
     event.preventDefault(); // Prevent the default form submission behavior
-
     console.log('input', input);
-
     if (!input.trim()) {
         console.log("Input is empty or only whitespace.");
         return; // Avoid sending empty messages
     }
-
     setUserInput(input);
-
     // Modify the input text before sending it to the LLM
     checkMessage(input);
-
+    // const response = ' <response> ' + input + ' </response>';
+    // appendUserMessage(response);
      // Clear the input field after sending
      setInput(""); // Assuming `setInput` is the state setter for your input state
 }, [input, append, handleInputChange]);
