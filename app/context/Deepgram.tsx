@@ -19,100 +19,7 @@ import React, {
   useState,
 } from "react";
 import { useToast } from "./Toast";
-
-//const [llmModel, setLlmModel] = useState<string>('gpt-4-turbo-preview');
-//const [llmModel, setLlmModel] = useState<string>('gpt-4-turbo-preview');
-
-
-const voices: {
-  [key: string]: {
-    name: string;
-    avatar: string;
-    language: string;
-    accent: string;
-    //provider: string;
-    //llm: string;
-  };
-} = {
-  "aura-asteria-en": {
-    name: "Asteria",
-    avatar: "/devin_clark.svg",
-    language: "English",
-    accent: "US",
-    //provider: 
-    //llm: string;
-  },
-  "aura-luna-en": {
-    name: "Luna",
-    avatar: "/devin_clark.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-stella-en": {
-    name: "Stella",
-    avatar: "/devin_clark.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-athena-en": {
-    name: "Athena",
-    avatar: "/devin_clark.svg",
-    language: "English",
-    accent: "UK",
-  },
-  "aura-hera-en": {
-    name: "Hera",
-    avatar: "/devin_clark.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-orion-en": {
-    name: "Orion",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-arcas-en": {
-    name: "Arcas",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-perseus-en": {
-    name: "Perseus",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-angus-en": {
-    name: "Angus",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "Ireland",
-  },
-  "aura-orpheus-en": {
-    name: "Orpheus",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "US",
-  },
-  "aura-helios-en": {
-    name: "Helios",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "UK",
-  },
-  "aura-zeus-en": {
-    name: "Zeus",
-    avatar: "/ryan-hiles.svg",
-    language: "English",
-    accent: "US",
-  },
-};
-
-const voiceMap = (model: string) => {
-  return voices[model];
-};
+import { voices, voiceMap } from "./Voices";
 
 type DeepgramAction =
   | { type: 'SET_CONNECTING'; payload: boolean }
@@ -181,8 +88,24 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
       return { ...state, connection: null, connectionReady: false, connecting: false, apiKey: undefined, isLoadingKey: true };
     case 'SET_CONNECTION_READY':
       return { ...state, connectionReady: action.payload };
+    // case 'SET_TTS_OPTIONS':
+    //   return { ...state, ttsOptions: action.payload };
     case 'SET_TTS_OPTIONS':
-      return { ...state, ttsOptions: action.payload };
+      const voiceConfig = voices[action.payload.model];
+      if (!voiceConfig) {
+        console.error("Voice model not found:", action.payload.model);
+        return state; // Optionally handle this error more gracefully
+      }
+      return {
+        ...state,
+        ttsOptions: {
+          ...state.ttsOptions, // Preserve existing ttsOptions
+          model: action.payload.model,
+          //ttsProvider: action.payload.ttsProvider, // Use the provided ttsProvider from action payload
+          ttsProvider: voiceConfig.ttsProvider, // Include ttsProvider from voice config
+          voiceId: voiceConfig.voiceId,// Add other relevant voice settings here if needed
+        }
+      };
     case 'SET_STT_OPTIONS':
       return { ...state, sttOptions: action.payload };
     case 'SET_LLM_LATENCY':
@@ -279,6 +202,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   useEffect(() => {
     if (!state.ttsOptions) {
       dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } });
+      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } });
     }
     if (!state.sttOptions) {
       dispatch({ type: 'SET_STT_OPTIONS', payload: {

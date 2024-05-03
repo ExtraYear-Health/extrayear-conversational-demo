@@ -37,6 +37,7 @@ import { articleConversationContent } from "../prompts/articleConversation";
 import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
 import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
 import { checkMessagePromptContent } from "../prompts/checkMessage";
+import { LeftBubble } from "./LeftBubble";
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -84,7 +85,7 @@ export default function Conversation(): JSX.Element {
   const [processingPrompt, setProcessingPrompt] = useState(true);
   const [promptLineCount, setPromptLineCount] = useState(0);  // Initialize the counter to 0
 
-  // Effect to process the content once on component mount
+  // Get prompt. Store the individual lines in an array. Set prompt line counter.
   useEffect(() => {
     if (processingPrompt) {
       const promptString = newsArticleConversationContent; 
@@ -115,56 +116,66 @@ export default function Conversation(): JSX.Element {
     async (message: Message) => {
       const start = Date.now();
       const model = state.ttsOptions?.model ?? "aura-asteria-en";
-
-      //Deepgram TTS
-      const res = await fetch(`/api/speak?model=${model}`, {
-        cache: "no-store",
-        method: "POST",
-        body: JSON.stringify(message),
-      });
-    
-      // //ElevenLabs TTS
-      // const res = await fetch('/api/natural-speak', {
-      //   cache: "no-store",
-      //   method: "POST",
-      //   body: JSON.stringify(message),
-      // });
-
-      const headers = res.headers;
-      const blob = await res.blob();
-
-      stopMicrophone();
-      
-      //Delay before capturing audio. Does this work?
-      const waiting = setTimeout(() => {
-        clearTimeout(waiting);
-        setProcessing(false);
-      }, 200);
-
-      startAudio(blob, "audio/mp3", message.id).then(() => {
-        addAudio({
-          id: message.id,
-          blob,
-          latency: Number(headers.get("X-DG-Latency")) ?? Date.now() - start,
-          networkLatency: Date.now() - start,
-          model,
-        });
-
-        if (player) {
-          player.onended = () => {
-            const waiting = setTimeout(() => {
-              clearTimeout(waiting);
-              setProcessing(false);
-            }, 500);
-            //Microphone is turned off when LLM is generating a response. After playing the TTS, turn the mic back on again.
-            startMicrophone();
-          };
-        } else {
-          console.error('Player is undefined');
+  
+      console.log('ttsprovider', state.ttsOptions?.ttsProvider);
+  
+      let res: Response | null = null;
+      try {
+        if (state.ttsOptions?.ttsProvider === 'deepgram') {
+          res = await fetch(`/api/speak?model=${model}`, {
+            cache: "no-store",
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(message),
+          });
+        } else if (state.ttsOptions?.ttsProvider === 'elevenlabs') {
+          res = await fetch('/api/natural-speak', {
+            cache: "no-store",
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
+          });
         }
-      });
+  
+        if (!res || !res.ok) {
+          console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
+          return;
+        }
+  
+        const blob = await res.blob();
+        stopMicrophone();
+  
+        const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
+  
+        startAudio(blob, "audio/mp3", message.id).then(() => {
+          addAudio({
+            id: message.id,
+            blob,
+            latency,
+            networkLatency: Date.now() - start,
+            model,
+          });
+  
+          if (player) {
+            player.onended = () => {
+              setProcessing(false);
+              startMicrophone();
+            };
+          } else {
+            console.error('Player is undefined');
+          }
+        });
+  
+      } catch (error) {
+        console.error('Error fetching audio:', error);
+        // Optionally, handle this case more explicitly by notifying the user.
+      }
     },
-    [state.ttsOptions?.model, addAudio, startAudio, stopMicrophone, startMicrophone, player]
+    [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player]
   );
 
   //An optional callback that will be called when the chat stream ends
@@ -206,7 +217,7 @@ export default function Conversation(): JSX.Element {
   }), [promptLines[0]]); 
 
   /**
-   * AI SDK
+   * AI SDK for the voicebot conversation
    */
   const {
     messages: chatMessages,
@@ -218,8 +229,8 @@ export default function Conversation(): JSX.Element {
     setInput,
   } = useChat({
     id: "aura",
-    api: "/api/brain", //OpenAI
-    //api: "/api/groq",//Groq
+    //api: "/api/brain", //OpenAI
+    api: "/api/groq",//Groq
     initialMessages: [systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
@@ -242,13 +253,8 @@ export default function Conversation(): JSX.Element {
         if (currentUtterance) {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
-          const modifiedInput = processString(currentUtterance); 
+          checkMessage(currentUtterance); //if failsafe triggers then send whatever is in currentutterance to the LLM
           clearTimeout(failsafeTimeout);
-          appendUserMessage(modifiedInput);
-          // append({
-          //   role: "user",
-          //   content: modifiedInput,
-          // });
           clearTranscriptParts();
           setCurrentUtterance(undefined);
         }
@@ -426,13 +432,8 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      const modifiedInput = processString(content); 
+      checkMessage(content); 
       clearTimeout(failsafeTimeout);
-      appendUserMessage(modifiedInput);
-      // append({
-      //   role: "user",
-      //   content: modifiedInput,
-      // });
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
@@ -452,21 +453,15 @@ export default function Conversation(): JSX.Element {
   // const [loading, setLoading] = useState(false);
   const [userInput, setUserInput] = useState(null);
   const [responseStarted, setResponseStarted] = useState(false);
+  const [onMainThread, setOnMainThread] = useState(true);
+  const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
+  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
 
   const checkSystemMessage:Message = useMemo(() => ({
     id: generateRandomString(7),
     role: 'system',
     content: 'You are a helpful assistant.',
   }), []);
-
-  // //An optional callback that will be called when the chat stream ends
-  // const onCheckMessageResponse = useCallback((res: Response) => {
-  //   console.log('check message response');  
-  //   setResponseStarted(true);
-  //   },
-  //   [responseStarted]
-  // );
-
 
   const {
     messages: checkChatMessages,
@@ -482,9 +477,9 @@ export default function Conversation(): JSX.Element {
     //api: "/api/brainCheck", //OpenAI
     api: "/api/quickBrainCheck",//Groq
     initialMessages: [checkSystemMessage],
-    onFinish: (msg) => console.log('Chat finished:', msg),
+    onFinish: (msg) => console.log('Chat finished:'),
     onResponse: res => {
-      console.log('check message response', res);
+      //console.log('check message response', res);
       setResponseStarted(true);
     }
   });
@@ -496,101 +491,65 @@ export default function Conversation(): JSX.Element {
   }
 
   const checkMessage = (inputString) => {
+    setUserInput(inputString);
+    console.log('input string', inputString);
     const patientResponse = inputString;
     const therapistPrompt = chatMessages[chatMessages.length -1].content;
     if (!therapistPrompt) { return };
     const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
     console.log(promptInput);
-    checkMessagesAppend({
+    checkMessagesAppend({ //append message to messages array and initiate calling the LLM through the API endpoint.
       role: "user",
       content: promptInput,
     });
   };
 
   useEffect(() => {
-    if (checkChatMessages.length > 0  && responseStarted) {
-      if (checkChatMessages[checkChatMessages.length - 1]?.role === 'user'){ return };
-      const lastMessageContent = checkChatMessages[checkChatMessages.length - 1]?.content;
-      if (lastMessageContent) {
-        const answer = extractProblemAnswer(lastMessageContent);
-        console.log('extracted answer', answer);
-        const response = ' <response> ' + userInput + ' </response>';
-        let instructions = '';
-        let nextInstructions = '';
-        let newPrompt = '';
-        if (answer === 'true' || answer === 'True' || answer === 'TRUE') {
-          console.log('text response true');
-          instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
-          nextInstructions = ' <instructions> Next instruction here </instructions>';
+    // Ensure there are messages and the response has started
+    if (checkChatMessages.length > 0 && responseStarted) {
+      const lastMessage = checkChatMessages[checkChatMessages.length - 1];
+      
+      // Check if the last message was sent by the user
+      if (lastMessage?.role !== 'user') {
+        const lastMessageContent = lastMessage?.content;
+        if (lastMessageContent) {
+          const answer = extractProblemAnswer(lastMessageContent);
+          console.log('extracted answer', answer);
+  
+          const response = ` <response> ${userInput} </response>`;
+          let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
+          let nextInstructions = '';
+          let newPrompt = '';
+  
+          if (['true', 'True', 'TRUE'].includes(answer)) {
+            console.log('text response true');
+            if(onMainThread){
+              nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
+              setMainThreadMessageMarker(chatMessages.length + 1);
+              setPromptLineCount(promptLineCount + 1);
+            } else {
+              nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
+              nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+              setOnMainThread(true);
+            }
+          } else {
+            console.log('text response false');
+            setOnMainThread(false);
+            nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
+            nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+          }
+  
           newPrompt = instructions + response + nextInstructions;
-          setResponseStarted(false);
-        } else {
-          console.log('text response false');
-          instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
-          nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.';
-          nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
-          newPrompt = instructions + response + nextInstructions;
+          console.log('append new prompt', newPrompt);
+          setUserInput(undefined);
+          checkMessagesStop();
+          appendUserMessage(newPrompt);
           setResponseStarted(false);
         }
-        console.log('append new prompt');
-        setUserInput(null);
-        checkMessagesStop();
-        appendUserMessage(newPrompt);
       }
     }
-  }, [checkChatMessages, userInput]); //responseStarted
-
-  // useEffect(() => {
-  //   console.log('apple');
-  //   if (checkChatMessages.length > 0 && responseStarted) {
-  //     const lastMessageContent = checkChatMessages[checkChatMessages.length - 1]?.content;
-  //     if (lastMessageContent) {
-  //       const answer = extractProblemAnswer(lastMessageContent);
-  //       console.log('extracted answer', answer);
-  //       if (answer === 'true' || answer === 'True' || answer === 'TRUE') {
-  //         setCheckResponse(true);
-  //         setLoading(false);
-  //         setResponseStarted(false);
-  //         console.log('set to true');
-  //       } else {
-  //         setCheckResponse(false);
-  //         setLoading(false);
-  //         setResponseStarted(false);
-  //         console.log('set to false');
-  //       }
-  //     }
-  //   }
-  // }, [checkChatMessages, responseStarted]);
-
-  // useEffect(() => {
-  //   console.log('pear');
-  //   if (checkChatMessages.length > 0 && userInput && !loading) {
-  //     console.log('input1', userInput);
-
-  //     const response = ' <response> ' + userInput + ' </response>';
-  //     console.log(response);
-  //     let instructions = '';
-  //     let nextInstructions = '';
-  //     let newPrompt = '';
-
-  //     if (checkResponse) {
-  //       console.log('text response true');
-  //       instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from the main thread of the conversation.';
-  //       nextInstructions = ' <instructions> Next instruction here </instructions>';
-  //       newPrompt = instructions + response + nextInstructions;
-  //     } else {
-  //       console.log('text response false');
-  //       instructions = 'Here is my response and your next instruction. Follow the instruction exactly. This is from a tangent discussion thread within the conversation';
-  //       nextInstructions = 'Create an appropriate follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session.';
-  //       nextInstructions = ' <instructions> ' + nextInstructions + ' </instructions>';
-  //       newPrompt = instructions + response + nextInstructions;
-  //     }
-  //     console.log('append new prompt');
-  //     setUserInput(null);
-  //     checkMessagesStop();
-  //     appendUserMessage(newPrompt);
-  //   }
-  // }, [userInput, checkResponse, checkMessagesStop]);
+  }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
+  
 
   const appendUserMessage = (inputString) => {
     // Append the modified input to the chat, triggering the LLM to process it
@@ -607,7 +566,7 @@ export default function Conversation(): JSX.Element {
         console.log("Input is empty or only whitespace.");
         return; // Avoid sending empty messages
     }
-    setUserInput(input);
+    
     // Modify the input text before sending it to the LLM
     checkMessage(input);
     // const response = ' <response> ' + input + ' </response>';
@@ -721,6 +680,10 @@ export default function Conversation(): JSX.Element {
 
                         {currentUtterance && (
                           <RightBubble text={currentUtterance}></RightBubble>
+                        )}
+
+                        {userInput && (
+                          <RightBubble text={userInput}></RightBubble>
                         )}
 
                         <div
