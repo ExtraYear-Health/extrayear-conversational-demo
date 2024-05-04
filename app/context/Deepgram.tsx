@@ -20,6 +20,7 @@ import React, {
 } from "react";
 import { useToast } from "./Toast";
 import { voices, voiceMap } from "./Voices";
+import { llmModels, llmModelMap, LLMModelConfig } from "../context/LLM";
 
 type DeepgramAction =
   | { type: 'SET_CONNECTING'; payload: boolean }
@@ -30,6 +31,7 @@ type DeepgramAction =
   | { type: 'SET_STT_OPTIONS'; payload: LiveSchema | undefined }
   | { type: 'SET_LLM_LATENCY'; payload: { start: number; response: number } }
   | { type: 'SET_API_KEY'; payload: string | undefined}
+  | { type: 'SET_LLM'; payload: string | undefined}
   | { type: 'API_KEY_ERROR'; payload: Error }
   | { type: 'SET_LOADING_KEY'; payload: boolean };
 
@@ -44,11 +46,12 @@ type DeepgramState = {
   connectionReady: boolean;
   llmLatency?: { start: number; response: number };
   isLoadingKey: boolean;
+  llm?: LLMModelConfig | undefined;
 };
 
 type DeepgramContext = {
   state: DeepgramState;
-  dispatch: React.Dispatch<DeepgramAction>;
+  dispatch: Dispatch<DeepgramAction>;
 };
 
 interface DeepgramContextInterface {
@@ -64,9 +67,10 @@ const initialState = {
   connection: null,              // Represents the LiveClient connection instance
   connecting: false,             // Indicates whether the connection process is ongoing
   connectionReady: false,        // Indicates whether the connection is established and ready
+  llm: undefined,
 };
 
-const DeepgramContext = createContext<DeepgramContext>({ state: initialState, dispatch: () => null });
+const DeepgramContext = createContext<DeepgramContext>({ state: initialState, dispatch: () => undefined });
 
 const getApiKey = async (): Promise<string> => {
   console.log('getting a new api key');
@@ -91,7 +95,7 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
     // case 'SET_TTS_OPTIONS':
     //   return { ...state, ttsOptions: action.payload };
     case 'SET_TTS_OPTIONS':
-      const voiceConfig = voices[action.payload.model];
+      const voiceConfig = voices[action.payload.model]; //voices[action.payload.model];
       if (!voiceConfig) {
         console.error("Voice model not found:", action.payload.model);
         return state; // Optionally handle this error more gracefully
@@ -116,6 +120,16 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
       return { ...state, apiKeyError: action.payload };
     case 'SET_LOADING_KEY':
       return { ...state, isLoadingKey: action.payload };
+    case 'SET_LLM':
+      const llmConfig = llmModelMap(action.payload);
+      if (!llmConfig) {
+        console.error("LLM model not found:", action.payload);
+        return state; // Optionally handle this error more gracefully
+      }
+      return {
+        ...state,
+        llm: llmConfig  // Directly set llm to the retrieved config object
+      };
     default:
       return state;
   }
@@ -125,7 +139,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   const { toast } = useToast();
   const [state, dispatch] = useReducer(reducer, initialState);
   const isMounted = useRef(true);
-
 
   useEffect(() => {
      if (!state.apiKey) {
@@ -153,14 +166,12 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         interim_results: true,
         smart_format: true,
         endpointing: 550,
-        utterance_end_ms: 1500,
+        utterance_end_ms: 1500, //if changed, may need to change the value for the failsafe in Conversation.tsx as well.
         filler_words: true,
       });
 
       connection.on(LiveTranscriptionEvents.Open, () => {
         dispatch({ type: 'SET_CONNECTION_READY', payload: true });
-        // dispatch({ type: 'SET_CONNECTION', payload: connection });
-        // dispatch({ type: 'SET_CONNECTING', payload: false });
         console.log('connected');
       });
   
@@ -183,9 +194,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         return () => {
           console.log('cleanup connection');
           dispatch({ type: 'RESET_CONNECTION' });
-            // connection?.removeListener(LiveTranscriptionEvents.Open, handleOpen);
-            // connection?.removeListener(LiveTranscriptionEvents.Close, handleClose);
-            // connection?.removeListener(LiveTranscriptionEvents.Error, handleError);
         };
       }
 
@@ -199,10 +207,11 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     };
   }, []);
 
+  //Set initial values for TTS, STT, and LLM
   useEffect(() => {
     if (!state.ttsOptions) {
-      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } });
-      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } });
+      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
+      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
     }
     if (!state.sttOptions) {
       dispatch({ type: 'SET_STT_OPTIONS', payload: {
@@ -214,11 +223,11 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         filler_words: true,
       }});
     }
-    // if (!state.connection) {
-    //   console.log('first pass, connect');
-    //   connect();
-    // }
-  }, [state.connection, state.sttOptions, state.ttsOptions]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
+    if (!state.llm){
+      console.log('set llm');
+      dispatch({ type: 'SET_LLM', payload: "groq-llama3-70b" });
+    }
+  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (
     <DeepgramContext.Provider value={{ state, dispatch }}>

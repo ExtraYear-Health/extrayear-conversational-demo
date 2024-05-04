@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.8",
     "@deepgram/sdk": "^3.2.0-alpha.1",
     "@fullstory/browser": "^2.0.3",
     "@langchain/groq": "^0.0.8",

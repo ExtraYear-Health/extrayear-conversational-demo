@@ -32,12 +32,15 @@ import { useMessageData } from "../context/MessageMetadata";
 import { useMicrophone } from "../context/Microphone";
 import { useAudioStore } from "../context/AudioStore";
 import { useMessageCheck } from "../context/MessageCheck";
+import { LeftBubble } from "./LeftBubble";
+import { llmModels, LLMModelConfig } from "../context/LLM";
 
+//prompts
 import { articleConversationContent } from "../prompts/articleConversation";
 import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
 import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
 import { checkMessagePromptContent } from "../prompts/checkMessage";
-import { LeftBubble } from "./LeftBubble";
+
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -85,72 +88,71 @@ export default function Conversation(): JSX.Element {
   const [processingPrompt, setProcessingPrompt] = useState(true);
   const [promptLineCount, setPromptLineCount] = useState(0);  // Initialize the counter to 0
 
-  // Get prompt. Store the individual lines in an array. Set prompt line counter.
+  // Use this effect to process and initialize prompt content.
   useEffect(() => {
+    // Check if we need to process the prompt.
     if (processingPrompt) {
       const promptString = newsArticleConversationContent; 
-      // Check if newsArticleConversationContent is null, undefined, or empty
+
+      // Validate the prompt string to ensure it's usable.
       if (!promptString || promptString.trim() === '') {
         console.log('newsArticleConversationContent is null or empty');
-        // Optional: Handle the case where the content is not valid, e.g., set error state or early exit
-        return; // Early exit from the useEffect if content is invalid
+        return; // Halt execution if the prompt content is invalid.
       }
-  
-      // Convert the imported content into an array of lines
+    
+      // Split the prompt into individual lines and extract introductory content.
       const processedLines = promptTextArray(newsArticleConversationContent);
       const extractedContent = extractIntroContent(newsArticleConversationContent);
-  
-      // Update the state with the processed lines and extracted content
+    
+      // Update state with the new lines and introductory content.
       setPromptLines(processedLines);
       setIntroContent(extractedContent);
       
-      setPromptLineCount(promptLineCount + 2); //Start at line #2
+      // Adjust the prompt line counter to skip the first two lines.
+      setPromptLineCount(promptLineCount + 2);
+
+      // Mark prompt processing as complete.
       setProcessingPrompt(false);
     }
-  }, [processingPrompt, newsArticleConversationContent]);
+  }, [processingPrompt, newsArticleConversationContent]); 
 
-  /**
-   * Request audio from API
-   */
+
+  // Defines a memoized function to request TTS audio using current TTS settings.
   const requestTtsAudio = useCallback(
     async (message: Message) => {
       const start = Date.now();
-      const model = state.ttsOptions?.model ?? "aura-asteria-en";
-  
-      console.log('ttsprovider', state.ttsOptions?.ttsProvider);
-  
+      const model = state.ttsOptions?.model ?? "aura-asteria-en";  // Default model fallback
+
       let res: Response | null = null;
       try {
+        // Request audio generation based on the TTS provider set in the state
         if (state.ttsOptions?.ttsProvider === 'deepgram') {
           res = await fetch(`/api/speak?model=${model}`, {
             cache: "no-store",
             method: "POST",
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(message),
           });
         } else if (state.ttsOptions?.ttsProvider === 'elevenlabs') {
           res = await fetch('/api/natural-speak', {
             cache: "no-store",
             method: "POST",
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
           });
         }
-  
+
+        // Check response validity and log any failures
         if (!res || !res.ok) {
           console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
           return;
         }
-  
+
         const blob = await res.blob();
-        stopMicrophone();
-  
+        stopMicrophone();  // Stop microphone during playback
+
+        // Calculate the latency and play the received TTS audio
         const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
-  
         startAudio(blob, "audio/mp3", message.id).then(() => {
           addAudio({
             id: message.id,
@@ -159,7 +161,8 @@ export default function Conversation(): JSX.Element {
             networkLatency: Date.now() - start,
             model,
           });
-  
+
+          // Restart the microphone after audio ends if the player exists
           if (player) {
             player.onended = () => {
               setProcessing(false);
@@ -169,12 +172,13 @@ export default function Conversation(): JSX.Element {
             console.error('Player is undefined');
           }
         });
-  
+
       } catch (error) {
+        // Log and optionally handle errors more explicitly
         console.error('Error fetching audio:', error);
-        // Optionally, handle this case more explicitly by notifying the user.
       }
     },
+    // Dependencies for useCallback to ensure the function updates when necessary
     [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player]
   );
 
@@ -208,14 +212,56 @@ export default function Conversation(): JSX.Element {
     id: generateRandomString(7),
     role: "assistant",
     content: introContent,
-  }), [introContent]);  // Include the content variable in the dependency array
+  }), [introContent]); 
   
   const promptMessage: Message = useMemo(() => ({
-    id: 'AAAA',  // Consider using a unique ID for each instance if needed
+    id: 'AAAA',  
     role: "user",
     content: promptLines[0],
   }), [promptLines[0]]); 
 
+  // Define a state to hold the current API endpoint for the chat functionality.
+  const [chatApi, setChatApi] = useState(state.llm?.api || "/api/brain");
+
+  // This effect hook synchronizes the local chatApi state with changes in the global state.
+  // It ensures that the chat component always uses the correct API endpoint if updates occur.
+  useEffect(() => {
+    const newApi = state.llm?.api || "/api/brain";
+    if (chatApi !== newApi) {
+      // Update the local state with the new API endpoint, triggering re-render of dependent components
+      setChatApi(newApi);
+    }
+  }, [state.llm]); 
+
+  // Define an interface to structure the data for AI model parameters within the application
+  interface BodyApiType {
+    llmModel: string;      
+    temperature: number;    
+    maxTokens: number;     
+  }
+
+  // Initialize state to store AI model configurations with default settings
+  const [bodyApi, setBodyApi] = useState<BodyApiType>({
+    llmModel: "gpt-3.5-turbo-16k-0613",
+    temperature: 1.0,                   
+    maxTokens: 1024                    
+  });
+
+  // Effect hook to synchronize bodyApi state with changes in the global state (state.llm)
+  useEffect(() => {
+    // Determine the model to use, defaulting to a specific model if not specified in the state
+    const newApiModel = state.llm?.llmModel || "gpt-3.5-turbo-16k-0613";
+
+    // Update local state if the global model has changed
+    if (bodyApi.llmModel !== newApiModel) {
+      setBodyApi({
+        llmModel: newApiModel,
+        temperature: state.llm.settings.temperature, 
+        maxTokens: state.llm.settings.maxTokens     
+      });
+    }
+  }, [state.llm]);  // Dependency on state.llm ensures this runs only when the external state changes
+  
   /**
    * AI SDK for the voicebot conversation
    */
@@ -224,13 +270,12 @@ export default function Conversation(): JSX.Element {
     append,
     handleInputChange,
     input,
-    //handleSubmit,
     isLoading: llmLoading,
     setInput,
   } = useChat({
     id: "aura",
-    //api: "/api/brain", //OpenAI
-    api: "/api/groq",//Groq
+    api: chatApi,
+    body: bodyApi,
     initialMessages: [systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
@@ -457,72 +502,61 @@ export default function Conversation(): JSX.Element {
   const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
   const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
 
-  const checkSystemMessage:Message = useMemo(() => ({
+    // Memoize a system message to avoid re-creation on every render.
+  const checkSystemMessage: Message = useMemo(() => ({
     id: generateRandomString(7),
     role: 'system',
     content: 'You are a helpful assistant.',
   }), []);
 
+  // Hook initialization for chat functionalities with predefined system messages.
   const {
     messages: checkChatMessages,
     append: checkMessagesAppend,
-    //handleInputChange,
-    //input,
-    //handleSubmit,
     isLoading: checkMessagesLlmLoading,
     stop: checkMessagesStop,
-    //setInput,
   } = useChat({
     id: "brainCheck",
-    //api: "/api/brainCheck", //OpenAI
-    api: "/api/quickBrainCheck",//Groq
+    api: "/api/quickBrainCheck", // Groq API endpoint
     initialMessages: [checkSystemMessage],
-    onFinish: (msg) => console.log('Chat finished:'),
     onResponse: res => {
-      //console.log('check message response', res);
-      setResponseStarted(true);
+      setResponseStarted(true); // Trigger when response is received
     }
   });
 
+  // Extracts the answer from the problem content using a regex.
   function extractProblemAnswer(content: string): string | null {
     const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
     const match = content.match(regex);
     return match ? match[1] : null;
   }
 
+  // Processes input string to evaluate and append as user message.
   const checkMessage = (inputString) => {
     setUserInput(inputString);
-    console.log('input string', inputString);
     const patientResponse = inputString;
     const therapistPrompt = chatMessages[chatMessages.length -1].content;
-    if (!therapistPrompt) { return };
+    if (!therapistPrompt) return;
     const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
-    console.log(promptInput);
-    checkMessagesAppend({ //append message to messages array and initiate calling the LLM through the API endpoint.
+    checkMessagesAppend({
       role: "user",
       content: promptInput,
     });
   };
 
+  // Handle dynamic response creation and interaction flow management.
   useEffect(() => {
-    // Ensure there are messages and the response has started
     if (checkChatMessages.length > 0 && responseStarted) {
       const lastMessage = checkChatMessages[checkChatMessages.length - 1];
-      
-      // Check if the last message was sent by the user
       if (lastMessage?.role !== 'user') {
         const lastMessageContent = lastMessage?.content;
         if (lastMessageContent) {
           const answer = extractProblemAnswer(lastMessageContent);
-          console.log('extracted answer', answer);
-  
           const response = ` <response> ${userInput} </response>`;
           let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
           let nextInstructions = '';
-          let newPrompt = '';
-  
+
           if (['true', 'True', 'TRUE'].includes(answer)) {
-            console.log('text response true');
             if(onMainThread){
               nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
               setMainThreadMessageMarker(chatMessages.length + 1);
@@ -533,14 +567,12 @@ export default function Conversation(): JSX.Element {
               setOnMainThread(true);
             }
           } else {
-            console.log('text response false');
-            setOnMainThread(false);
             nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
             nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+            setOnMainThread(false);
           }
-  
-          newPrompt = instructions + response + nextInstructions;
-          console.log('append new prompt', newPrompt);
+
+          const newPrompt = instructions + response + nextInstructions;
           setUserInput(undefined);
           checkMessagesStop();
           appendUserMessage(newPrompt);
@@ -549,31 +581,26 @@ export default function Conversation(): JSX.Element {
       }
     }
   }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
-  
 
+  // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
-    // Append the modified input to the chat, triggering the LLM to process it
     append({
       role: "user",
       content: inputString,
     });
   };
 
+  // Handles user input submission by preprocessing before LLM processing.
   const handleSubmit = useCallback(async (event) => {
-    event.preventDefault(); // Prevent the default form submission behavior
-    console.log('input', input);
+    event.preventDefault(); // Prevent form submission defaults
     if (!input.trim()) {
-        console.log("Input is empty or only whitespace.");
-        return; // Avoid sending empty messages
+      console.error("Input is empty or only whitespace.");
+      return;
     }
-    
-    // Modify the input text before sending it to the LLM
-    checkMessage(input);
-    // const response = ' <response> ' + input + ' </response>';
-    // appendUserMessage(response);
-     // Clear the input field after sending
-     setInput(""); // Assuming `setInput` is the state setter for your input state
-}, [input, append, handleInputChange]);
+    checkMessage(input); // Process and check the message
+    setInput(""); // Clear input after submission
+  }, [input, append, handleInputChange]);
+
 
   /**
    * magic microphone audio queue processing
@@ -589,7 +616,6 @@ export default function Conversation(): JSX.Element {
           if (nextBlob && nextBlob?.size > 0) {
             state.connection?.send(nextBlob);  // Use connection from state
           }
-
           removeBlob();
         }
 
