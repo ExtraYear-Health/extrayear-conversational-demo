@@ -126,8 +126,8 @@ export default function Conversation(): JSX.Element {
             cache: "no-store",
             method: "POST",
             //headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(message),
-            //body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
+            //body: JSON.stringify(message),
+            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
           });
         }
 
