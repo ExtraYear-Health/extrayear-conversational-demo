@@ -125,7 +125,7 @@ export default function Conversation(): JSX.Element {
           res = await fetch('/api/natural-speak', {
             cache: "no-store",
             method: "POST",
-            headers: {'Content-Type': 'application/json'},
+            //headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(message),
             //body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
           });

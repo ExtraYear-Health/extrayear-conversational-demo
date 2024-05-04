@@ -3,15 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     // gotta use the request object to invalidate the cache every request :vomit:
+    // const url = req.url;
+    // const data = await req.json();
+    // const message: Message = data.message;
+    // const voiceId = data.voiceId;
+    // const start = Date.now();
+
     const url = req.url;
-    const data = await req.json();
-    const message: Message = data.message;
-    const voiceId = data.voiceId;
+    const model = req.nextUrl.searchParams.get("model") ?? "aura-asteria-en";
+    const message: Message = await req.json();
     const start = Date.now();
 
     let text = message.content;
 
-    console.log(voiceId, text);
+    //console.log(voiceId, text);
 
     text = text
         .replaceAll("¡", "")
