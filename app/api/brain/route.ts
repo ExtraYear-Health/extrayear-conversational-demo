@@ -11,15 +11,25 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   // Extract the `messages` from the body of the request
-  const { messages } = await req.json();
+  const data = await req.json();
+  const messages = data.messages;
+  const model = data.llmModel;
+  const temp = data.temperature;
+  const maxTokens = data.maxTokens;
+  // const { messages } = await req.json();
   const start = Date.now();
+
+  console.log('openai api', model);
 
   // Request the OpenAI API for the response based on the prompt
   try {
     const response = await openai.chat.completions.create({
+      model: model,
+      temperature: temp,
+      max_tokens: maxTokens,
       //model: "gpt-4-0125-preview",
-      //model: "gpt-4-turbo-preview",
-      model: "gpt-3.5-turbo-16k-0613",
+      //model: "gpt-4-turbo",
+      //model: "gpt-3.5-turbo-16k-0613",
       stream: true,
       messages: messages,
     });
