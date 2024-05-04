@@ -135,20 +135,29 @@ function extractResponseText(inputString) {
   return match ? match[1].trim() : null;
 }
 
+
 /**
  * Cleans an input string by removing quotes and brackets from its beginning and end, and replaces internal newlines.
  * @param {string} inputString The text content to be cleaned.
  * @returns {string} The cleaned string with quotes and brackets removed from the beginning and end, and internal newlines replaced.
  */
-function cleanString(inputString) {
-  // Remove multiple quotes from the beginning of the string
-  let quotesRemoved = inputString.replace(/^['"]+|['"]+$/g, '');
-  let cleanedString = quotesRemoved.replace(/^[\(\)\[\]\{\}]+|[\(\)\[\]\{\}]+$/g, '');
-  
-  // Replace newlines not at the start or end of the string
-  let newlinesRemoved = cleanedString.replace(/(?<!^)\n(?!$)/g, '');
+function cleanString(inputString: string): string {
+  // Replace double newlines with a single period
+  inputString = inputString.replace(/\\n\\n/g, '. ');
 
-  return newlinesRemoved;
+  // Replace any remaining single newlines with a period
+  inputString = inputString.replace(/\\n/g, '. ');
+  
+  // First replace ":." with "."
+  inputString = inputString.replace(/:\./g, '.');
+  // Then replace any ".." with "."
+  inputString = inputString.replace(/\.{2,}/g, '.');
+
+  // Remove multiple quotes from the beginning of the string
+  inputString = inputString.replace(/^['"]+|['"]+$/g, '');
+  inputString = inputString.replace(/^[\(\)\[\]\{\}]+|[\(\)\[\]\{\}]+$/g, '');
+  
+  return inputString;
 }
 
 

@@ -32,7 +32,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         llmModel: "Llama3-8b-8192",
         api: "/api/groq",
         settings: {
-          temperature: 1.0,
+          temperature: 0.2,
           maxTokens: 2000,
         }
       },

@@ -210,8 +210,8 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   //Set initial values for TTS, STT, and LLM
   useEffect(() => {
     if (!state.ttsOptions) {
-      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
-      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
+      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
+      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
     }
     if (!state.sttOptions) {
       dispatch({ type: 'SET_STT_OPTIONS', payload: {
@@ -225,7 +225,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     }
     if (!state.llm){
       console.log('set llm');
-      dispatch({ type: 'SET_LLM', payload: "groq-llama3-70b" });
+      dispatch({ type: 'SET_LLM', payload: "groq-llama3-8b"});
     }
   }, [state.connection, state.sttOptions, state.ttsOptions, state.llm]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 

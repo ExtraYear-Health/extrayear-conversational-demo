@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   // const { messages } = await req.json();
   const start = Date.now();
 
-  console.log('openai api');
+  console.log('openai api', model);
 
   // Request the OpenAI API for the response based on the prompt
   try {

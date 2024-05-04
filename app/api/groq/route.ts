@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const maxTokens = data.maxTokens;
   const start = Date.now();
   
-  console.log('groq api');
+  console.log('groq api', model);
 
   //Initiate the chat completions with Groq
   try {
@@ -29,7 +29,8 @@ export async function POST(req: Request) {
       model: model,
       temperature: temp,
       max_tokens: maxTokens,
-      top_p: 1,
+      top_p: 0.8,
+      seed: 10,
       stop: null,//", 6",
       stream: false // Assuming streaming is not necessary
     });

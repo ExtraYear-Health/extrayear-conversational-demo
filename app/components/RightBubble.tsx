@@ -11,9 +11,6 @@ export const RightBubble = ({
   message?: Message;
   text?: string;
 }) => {
-  // Extract response text from the message content if available
-  const responseText = message?.content ? extractResponseText(message.content) : null;
-
   return (
     <>
       <div className="col-start-6 col-end-13 p-3">
@@ -23,8 +20,7 @@ export const RightBubble = ({
           </div>
           <div className="glass relative text-sm py-2 px-4 shadow rounded-s-xl rounded-ee-xl">
             <div className="text-sm font-normal text-white/80 markdown min-w-[10em]">
-              {/* Use the extracted response text or fallback to the original text or an empty string */}
-              <TextContent text={responseText ?? text ?? ""} />
+              <TextContent text={message?.content ?? text ?? ""} />
             </div>
           </div>
         </div>
@@ -32,16 +28,6 @@ export const RightBubble = ({
     </>
   );
 };
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -63,6 +49,9 @@ export const RightBubble = ({
 //   message?: Message;
 //   text?: string;
 // }) => {
+//   // Extract response text from the message content if available
+//   const responseText = message?.content ? extractResponseText(message.content) : null;
+
 //   return (
 //     <>
 //       <div className="col-start-6 col-end-13 p-3">
@@ -72,7 +61,8 @@ export const RightBubble = ({
 //           </div>
 //           <div className="glass relative text-sm py-2 px-4 shadow rounded-s-xl rounded-ee-xl">
 //             <div className="text-sm font-normal text-white/80 markdown min-w-[10em]">
-//               <TextContent text={message?.content ?? text ?? ""} />
+//               {/* Use the extracted response text or fallback to the original text or an empty string */}
+//               <TextContent text={responseText ?? text ?? ""} />
 //             </div>
 //           </div>
 //         </div>
@@ -80,3 +70,4 @@ export const RightBubble = ({
 //     </>
 //   );
 // };
+

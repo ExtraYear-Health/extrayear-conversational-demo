@@ -18,7 +18,6 @@ import {
   contextualGreeting,
   generateRandomString,
   utteranceText,
-  promptTextArray,
   extractIntroContent,
   cleanString,
 } from "../lib/helpers";
@@ -48,11 +47,9 @@ import { checkMessagePromptContent } from "../prompts/checkMessage";
  */
 export default function Conversation(): JSX.Element {
   const { state, dispatch } = useDeepgram();
-  const { checkMessageWithLLM } = useMessageCheck();
   const { addAudio } = useAudioStore();
   const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
   const { addMessageData } = useMessageData();
-  const [promptLines, setPromptLines] = useState([]);
   const [introContent, setIntroContent] = useState(null);
   const {
     microphoneOpen,
@@ -78,7 +75,6 @@ export default function Conversation(): JSX.Element {
    * Refs
    */
   const messageMarker = useRef<null | HTMLDivElement>(null);
-  const mainThread = useRef(true);
 
   /**
    * State
@@ -86,7 +82,6 @@ export default function Conversation(): JSX.Element {
   const [initialLoad, setInitialLoad] = useState(true);
   const [isProcessing, setProcessing] = useState(false);
   const [processingPrompt, setProcessingPrompt] = useState(true);
-  const [promptLineCount, setPromptLineCount] = useState(0);  // Initialize the counter to 0
 
   // Use this effect to process and initialize prompt content.
   useEffect(() => {
@@ -100,21 +95,14 @@ export default function Conversation(): JSX.Element {
         return; // Halt execution if the prompt content is invalid.
       }
     
-      // Split the prompt into individual lines and extract introductory content.
-      const processedLines = promptTextArray(newsArticleConversationContent);
       const extractedContent = extractIntroContent(newsArticleConversationContent);
     
-      // Update state with the new lines and introductory content.
-      setPromptLines(processedLines);
       setIntroContent(extractedContent);
       
-      // Adjust the prompt line counter to skip the first two lines.
-      setPromptLineCount(promptLineCount + 2);
-
       // Mark prompt processing as complete.
       setProcessingPrompt(false);
     }
-  }, [processingPrompt, newsArticleConversationContent]); 
+  }, [processingPrompt]); 
 
 
   // Defines a memoized function to request TTS audio using current TTS settings.
@@ -138,7 +126,8 @@ export default function Conversation(): JSX.Element {
             cache: "no-store",
             method: "POST",
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
+            body: JSON.stringify(message),
+            //body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
           });
         }
 
@@ -185,6 +174,7 @@ export default function Conversation(): JSX.Element {
   //An optional callback that will be called when the chat stream ends
   const onFinish = useCallback(
     (msg: any) => {
+      msg.content = cleanString(msg.content); //remove excess characters before TTS.
       requestTtsAudio(msg);
     },
     [requestTtsAudio]
@@ -217,8 +207,8 @@ export default function Conversation(): JSX.Element {
   const promptMessage: Message = useMemo(() => ({
     id: 'AAAA',  
     role: "user",
-    content: promptLines[0],
-  }), [promptLines[0]]); 
+    content: newsArticleConversationContent,
+  }), []); 
 
   // Define a state to hold the current API endpoint for the chat functionality.
   const [chatApi, setChatApi] = useState(state.llm?.api || "/api/brain");
@@ -270,8 +260,8 @@ export default function Conversation(): JSX.Element {
     append,
     handleInputChange,
     input,
+    handleSubmit,
     isLoading: llmLoading,
-    setInput,
   } = useChat({
     id: "aura",
     api: chatApi,
@@ -298,7 +288,7 @@ export default function Conversation(): JSX.Element {
         if (currentUtterance) {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
-          checkMessage(currentUtterance); //if failsafe triggers then send whatever is in currentutterance to the LLM
+          appendUserMessage(currentUtterance);
           clearTimeout(failsafeTimeout);
           clearTranscriptParts();
           setCurrentUtterance(undefined);
@@ -477,7 +467,7 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      checkMessage(content); 
+      appendUserMessage(content);
       clearTimeout(failsafeTimeout);
       clearTranscriptParts();
       setCurrentUtterance(undefined);
@@ -494,93 +484,93 @@ export default function Conversation(): JSX.Element {
    * Check if response is a good answer to the prompt
    */
 
-  // const [checkResponse, setCheckResponse] = useState(false);
-  // const [loading, setLoading] = useState(false);
-  const [userInput, setUserInput] = useState(null);
-  const [responseStarted, setResponseStarted] = useState(false);
-  const [onMainThread, setOnMainThread] = useState(true);
-  const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
-  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
+  // // const [checkResponse, setCheckResponse] = useState(false);
+  // // const [loading, setLoading] = useState(false);
+  // const [userInput, setUserInput] = useState(null);
+  // const [responseStarted, setResponseStarted] = useState(false);
+  // const [onMainThread, setOnMainThread] = useState(true);
+  // const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
+  // const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
 
-    // Memoize a system message to avoid re-creation on every render.
-  const checkSystemMessage: Message = useMemo(() => ({
-    id: generateRandomString(7),
-    role: 'system',
-    content: 'You are a helpful assistant.',
-  }), []);
+  //   // Memoize a system message to avoid re-creation on every render.
+  // const checkSystemMessage: Message = useMemo(() => ({
+  //   id: generateRandomString(7),
+  //   role: 'system',
+  //   content: 'You are a helpful assistant.',
+  // }), []);
 
-  // Hook initialization for chat functionalities with predefined system messages.
-  const {
-    messages: checkChatMessages,
-    append: checkMessagesAppend,
-    isLoading: checkMessagesLlmLoading,
-    stop: checkMessagesStop,
-  } = useChat({
-    id: "brainCheck",
-    api: "/api/quickBrainCheck", // Groq API endpoint
-    initialMessages: [checkSystemMessage],
-    onResponse: res => {
-      setResponseStarted(true); // Trigger when response is received
-    }
-  });
+  // // Hook initialization for chat functionalities with predefined system messages.
+  // const {
+  //   messages: checkChatMessages,
+  //   append: checkMessagesAppend,
+  //   isLoading: checkMessagesLlmLoading,
+  //   stop: checkMessagesStop,
+  // } = useChat({
+  //   id: "brainCheck",
+  //   api: "/api/quickBrainCheck", // Groq API endpoint
+  //   initialMessages: [checkSystemMessage],
+  //   onResponse: res => {
+  //     setResponseStarted(true); // Trigger when response is received
+  //   }
+  // });
 
-  // Extracts the answer from the problem content using a regex.
-  function extractProblemAnswer(content: string): string | null {
-    const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
-    const match = content.match(regex);
-    return match ? match[1] : null;
-  }
+  // // Extracts the answer from the problem content using a regex.
+  // function extractProblemAnswer(content: string): string | null {
+  //   const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
+  //   const match = content.match(regex);
+  //   return match ? match[1] : null;
+  // }
 
-  // Processes input string to evaluate and append as user message.
-  const checkMessage = (inputString) => {
-    setUserInput(inputString);
-    const patientResponse = inputString;
-    const therapistPrompt = chatMessages[chatMessages.length -1].content;
-    if (!therapistPrompt) return;
-    const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
-    checkMessagesAppend({
-      role: "user",
-      content: promptInput,
-    });
-  };
+  // // Processes input string to evaluate and append as user message.
+  // const checkMessage = (inputString) => {
+  //   setUserInput(inputString);
+  //   const patientResponse = inputString;
+  //   const therapistPrompt = chatMessages[chatMessages.length -1].content;
+  //   if (!therapistPrompt) return;
+  //   const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
+  //   checkMessagesAppend({
+  //     role: "user",
+  //     content: promptInput,
+  //   });
+  // };
 
-  // Handle dynamic response creation and interaction flow management.
-  useEffect(() => {
-    if (checkChatMessages.length > 0 && responseStarted) {
-      const lastMessage = checkChatMessages[checkChatMessages.length - 1];
-      if (lastMessage?.role !== 'user') {
-        const lastMessageContent = lastMessage?.content;
-        if (lastMessageContent) {
-          const answer = extractProblemAnswer(lastMessageContent);
-          const response = ` <response> ${userInput} </response>`;
-          let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
-          let nextInstructions = '';
+  // // Handle dynamic response creation and interaction flow management.
+  // useEffect(() => {
+  //   if (checkChatMessages.length > 0 && responseStarted) {
+  //     const lastMessage = checkChatMessages[checkChatMessages.length - 1];
+  //     if (lastMessage?.role !== 'user') {
+  //       const lastMessageContent = lastMessage?.content;
+  //       if (lastMessageContent) {
+  //         const answer = extractProblemAnswer(lastMessageContent);
+  //         const response = ` <response> ${userInput} </response>`;
+  //         let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
+  //         let nextInstructions = '';
 
-          if (['true', 'True', 'TRUE'].includes(answer)) {
-            if(onMainThread){
-              nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
-              setMainThreadMessageMarker(chatMessages.length + 1);
-              setPromptLineCount(promptLineCount + 1);
-            } else {
-              nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
-              nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-              setOnMainThread(true);
-            }
-          } else {
-            nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
-            nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-            setOnMainThread(false);
-          }
+  //         if (['true', 'True', 'TRUE'].includes(answer)) {
+  //           if(onMainThread){
+  //             nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
+  //             setMainThreadMessageMarker(chatMessages.length + 1);
+  //             setPromptLineCount(promptLineCount + 1);
+  //           } else {
+  //             nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
+  //             nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+  //             setOnMainThread(true);
+  //           }
+  //         } else {
+  //           nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
+  //           nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+  //           setOnMainThread(false);
+  //         }
 
-          const newPrompt = instructions + response + nextInstructions;
-          setUserInput(undefined);
-          checkMessagesStop();
-          appendUserMessage(newPrompt);
-          setResponseStarted(false);
-        }
-      }
-    }
-  }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
+  //         const newPrompt = instructions + response + nextInstructions;
+  //         setUserInput(undefined);
+  //         checkMessagesStop();
+  //         appendUserMessage(newPrompt);
+  //         setResponseStarted(false);
+  //       }
+  //     }
+  //   }
+  // }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
 
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
@@ -591,15 +581,15 @@ export default function Conversation(): JSX.Element {
   };
 
   // Handles user input submission by preprocessing before LLM processing.
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault(); // Prevent form submission defaults
-    if (!input.trim()) {
-      console.error("Input is empty or only whitespace.");
-      return;
-    }
-    checkMessage(input); // Process and check the message
-    setInput(""); // Clear input after submission
-  }, [input, append, handleInputChange]);
+  // const handleSubmit = useCallback(async (event) => {
+  //   event.preventDefault(); // Prevent form submission defaults
+  //   if (!input.trim()) {
+  //     console.error("Input is empty or only whitespace.");
+  //     return;
+  //   }
+  //   checkMessage(input); // Process and check the message
+  //   setInput(""); // Clear input after submission
+  // }, [input, append, handleInputChange]);
 
 
   /**
@@ -706,10 +696,6 @@ export default function Conversation(): JSX.Element {
 
                         {currentUtterance && (
                           <RightBubble text={currentUtterance}></RightBubble>
-                        )}
-
-                        {userInput && (
-                          <RightBubble text={userInput}></RightBubble>
                         )}
 
                         <div

@@ -4,13 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
     // gotta use the request object to invalidate the cache every request :vomit:
     const url = req.url;
-    const model = req.nextUrl.searchParams.get("model") ?? "aura-asteria-en";
     const data = await req.json();
     const message: Message = data.message;
     const voiceId = data.voiceId;
     const start = Date.now();
 
     let text = message.content;
+
+    console.log(voiceId, text);
 
     text = text
         .replaceAll("¡", "")
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
         }
         );
     
-    // const voiceId = 'XrExE9yKIg1WjnnlVkGX';
+    const voiceId = 'XrExE9yKIg1WjnnlVkGX';
     const xilabsUrl =  `${process.env.ELEVENLABS_URL}/v1/text-to-speech/${voiceId}/stream`;
     const options = {
         method: 'POST',
