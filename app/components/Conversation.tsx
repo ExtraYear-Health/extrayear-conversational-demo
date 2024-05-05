@@ -78,7 +78,6 @@ export default function Conversation(): JSX.Element {
    * Refs
    */
   const messageMarker = useRef<null | HTMLDivElement>(null);
-  const mainThread = useRef(true);
 
   /**
    * State
@@ -182,13 +181,165 @@ export default function Conversation(): JSX.Element {
     [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player]
   );
 
+  //const [userInput, setUserInput] = useState(null);
+  //const [responseStarted, setResponseStarted] = useState(false);
+  const [onMainThread, setOnMainThread] = useState(true);
+  // const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
+  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
+
+  // Extracts the answer from the problem content using a regex.
+  function extractResponseSections(content: string, xmlSearchString: string): string | null {
+    let regex = null;
+
+    // Define the regex pattern based on the input xmlSearchString.
+    switch(xmlSearchString){
+      case 'response':
+        regex = /<response>(.*?)<\/response>/;
+        break;
+      case 'reply':
+        regex = /<reply>(.*?)<\/reply>/;
+        break;
+      case 'checkBoolean':
+        regex = /<checkBoolean>(.*?)<\/checkBoolean>/;
+        break;
+      default:
+        // Return null if xmlSearchString does not match any case.
+        return null;
+    }
+
+    // Execute the regex to find a match.
+    const match = content.match(regex);
+
+    // Return the first capturing group if a match is found, otherwise return null.
+    return match ? match[1] : null;
+  }
+
+  // Processes input string to evaluate and append as user message.
+  const checkMessage = (inputString) => {
+    const falseInstruction = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
+    let nextInstruction = null;
+    if (onMainThread){
+      nextInstruction = promptLines[promptLineCount];
+    } else {
+      nextInstruction = `Create an appropriate follow up statement to the response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
+    }
+    const promptInput = checkMessagePromptContent(inputString, nextInstruction, falseInstruction);
+    appendUserMessage(promptInput);
+  };
+
+  // // Handle dynamic response creation and interaction flow management.
+  // useEffect(() => {
+  //   if (checkChatMessages.length > 0 && responseStarted) {
+  //     const lastMessage = checkChatMessages[checkChatMessages.length - 1];
+  //     if (lastMessage?.role !== 'user') {
+  //       const lastMessageContent = lastMessage?.content;
+  //       if (lastMessageContent) {
+  //         const answer = extractProblemAnswer(lastMessageContent);
+  //         const response = ` <response> ${userInput} </response>`;
+  //         let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
+  //         let nextInstructions = '';
+
+  //         if (['true', 'True', 'TRUE'].includes(answer)) {
+  //           if(onMainThread){
+  //             nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
+  //             setMainThreadMessageMarker(chatMessages.length + 1);
+  //             setPromptLineCount(promptLineCount + 1);
+  //           } else {
+  //             nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
+  //             nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+  //             setOnMainThread(true);
+  //           }
+  //         } else {
+  //           nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
+  //           nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
+  //           setOnMainThread(false);
+  //         }
+
+  //         const newPrompt = instructions + response + nextInstructions;
+  //         setUserInput(undefined);
+  //         checkMessagesStop();
+  //         appendUserMessage(newPrompt);
+  //         setResponseStarted(false);
+  //       }
+  //     }
+  //   }
+  // }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
+
   //An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback(
-    (msg: any) => {
-      requestTtsAudio(msg);
-    },
-    [requestTtsAudio]
-  );
+  const onFinish = useCallback((msg: any) => {
+    requestTtsAudio(msg);
+
+    //move below to function
+  
+    // Extract the boolean result and handle potential null value
+    const booleanResult = extractResponseSections(msg, 'checkBoolean');
+    if (!booleanResult) {
+      throw new Error('Boolean result not found in the message.');
+    }
+    if (['true', 'True', 'TRUE'].includes(booleanResult)) {
+      setOnMainThread(true);
+      setPromptLineCount(promptLineCount + 1);
+      setMainThreadMessageMarker(chatMessages.length + 1);
+    } else {
+      setOnMainThread(false);
+    }
+  
+    // Extract the reply from the assistant and update the last assistant message
+    const assistantReply = extractResponseSections(msg, 'reply');
+    if (!assistantReply) {
+      throw new Error('Assistant reply not found in the message.');
+    }
+    const lastAssistantMessage = chatMessages.findLast(({ role }) => role === 'assistant');
+    if (lastAssistantMessage) {
+      lastAssistantMessage.content = assistantReply;
+    }
+  
+    // Extract the response from the user and update the last user message
+    const userReply = extractResponseSections(msg, 'response');
+    if (!userReply) {
+      throw new Error('User reply not found in the message.');
+    }
+    const lastUserMessage = chatMessages.findLast(({ role }) => role === 'user');
+    if (lastUserMessage) {
+      lastUserMessage.content = userReply;
+    }
+  },
+  [requestTtsAudio, chatMessages, setOnMainThread, setPromptLineCount, setMainThreadMessageMarker]);
+  
+  // const onFinish = useCallback((msg: any) => {
+  //     requestTtsAudio(msg);
+  //     //get true or false
+  //     const booleanResult = extractResponseSections(msg, 'checkBoolean');
+  //     if (['true', 'True', 'TRUE'].includes(booleanResult)) {
+  //       setOnMainThread(true);
+  //       setPromptLineCount(promptLineCount + 1);  //DO THIS HERE?
+  //       setMainThreadMessageMarker(chatMessages.length + 1);
+  //     } else {
+  //       setOnMainThread(false);
+  //     }
+  //     //get reply
+  //     const assistantReply = extractResponseSections(msg, 'reply');
+  //     if (chatMessages[chatMessages.length - 1].role === 'assistant'){
+  //       chatMessages[chatMessages.length - 1].content = assistantReply;
+  //     }
+  //     //get response from previous user message
+  //     const userReply = extractResponseSections(msg, 'response');
+  //     if (chatMessages[chatMessages.length - 2].role === 'user'){
+  //       chatMessages[chatMessages.length - 2].content = userReply;
+  //     }
+  //   },
+  //   [requestTtsAudio]
+  // );
+
+  // Append user-generated content to the chat.
+  const appendUserMessage = (inputString) => {
+    inputString = checkMessage(inputString);
+    //fix things here and change content
+    append({
+      role: "user",
+      content: inputString,
+    });
+  };
 
   //An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging
   const onResponse = useCallback((res: Response) => {
@@ -220,9 +371,22 @@ export default function Conversation(): JSX.Element {
     content: promptLines[0],
   }), [promptLines[0]]); 
 
-  // Define a state to hold the current API endpoint for the chat functionality.
+  /**
+   * This section of code allows the user to select a different LLM from the UI and then updates
+   * the api and body in the Vercel AI SDK below
+   */
+  // Define an interface to structure the data for AI model parameters within the application
+  interface BodyApiType {
+    llmModel: string;      
+    temperature: number;    
+    maxTokens: number;     
+  }
   const [chatApi, setChatApi] = useState(state.llm?.api || "/api/brain");
-
+  const [bodyApi, setBodyApi] = useState<BodyApiType>({
+    llmModel: "gpt-3.5-turbo-16k-0613",
+    temperature: 1.0,                   
+    maxTokens: 1024                    
+  });
   // This effect hook synchronizes the local chatApi state with changes in the global state.
   // It ensures that the chat component always uses the correct API endpoint if updates occur.
   useEffect(() => {
@@ -231,27 +395,9 @@ export default function Conversation(): JSX.Element {
       // Update the local state with the new API endpoint, triggering re-render of dependent components
       setChatApi(newApi);
     }
-  }, [state.llm]); 
 
-  // Define an interface to structure the data for AI model parameters within the application
-  interface BodyApiType {
-    llmModel: string;      
-    temperature: number;    
-    maxTokens: number;     
-  }
-
-  // Initialize state to store AI model configurations with default settings
-  const [bodyApi, setBodyApi] = useState<BodyApiType>({
-    llmModel: "gpt-3.5-turbo-16k-0613",
-    temperature: 1.0,                   
-    maxTokens: 1024                    
-  });
-
-  // Effect hook to synchronize bodyApi state with changes in the global state (state.llm)
-  useEffect(() => {
     // Determine the model to use, defaulting to a specific model if not specified in the state
     const newApiModel = state.llm?.llmModel || "gpt-3.5-turbo-16k-0613";
-
     // Update local state if the global model has changed
     if (bodyApi.llmModel !== newApiModel) {
       setBodyApi({
@@ -260,7 +406,7 @@ export default function Conversation(): JSX.Element {
         maxTokens: state.llm.settings.maxTokens     
       });
     }
-  }, [state.llm]);  // Dependency on state.llm ensures this runs only when the external state changes
+  }, [state.llm]); 
   
   /**
    * AI SDK for the voicebot conversation
@@ -279,7 +425,19 @@ export default function Conversation(): JSX.Element {
     initialMessages: [systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
+    // sendExtraMessageFields: true,
   });
+
+  // Handles user input submission by preprocessing before LLM processing.
+  const handleSubmit = useCallback(async (event) => {
+    event.preventDefault(); // Prevent form submission defaults
+    if (!input.trim()) {
+      console.error("Input is empty or only whitespace.");
+      return;
+    }
+    appendUserMessage(input);
+    setInput(""); // Clear input after submission
+  }, [input, append, handleInputChange]);
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
   const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>();
@@ -496,110 +654,31 @@ export default function Conversation(): JSX.Element {
 
   // const [checkResponse, setCheckResponse] = useState(false);
   // const [loading, setLoading] = useState(false);
-  const [userInput, setUserInput] = useState(null);
-  const [responseStarted, setResponseStarted] = useState(false);
-  const [onMainThread, setOnMainThread] = useState(true);
-  const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
-  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
 
-    // Memoize a system message to avoid re-creation on every render.
-  const checkSystemMessage: Message = useMemo(() => ({
-    id: generateRandomString(7),
-    role: 'system',
-    content: 'You are a helpful assistant.',
-  }), []);
 
-  // Hook initialization for chat functionalities with predefined system messages.
-  const {
-    messages: checkChatMessages,
-    append: checkMessagesAppend,
-    isLoading: checkMessagesLlmLoading,
-    stop: checkMessagesStop,
-  } = useChat({
-    id: "brainCheck",
-    api: "/api/quickBrainCheck", // Groq API endpoint
-    initialMessages: [checkSystemMessage],
-    onResponse: res => {
-      setResponseStarted(true); // Trigger when response is received
-    }
-  });
+  //   // Memoize a system message to avoid re-creation on every render.
+  // const checkSystemMessage: Message = useMemo(() => ({
+  //   id: generateRandomString(7),
+  //   role: 'system',
+  //   content: 'You are a helpful assistant.',
+  // }), []);
 
-  // Extracts the answer from the problem content using a regex.
-  function extractProblemAnswer(content: string): string | null {
-    const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
-    const match = content.match(regex);
-    return match ? match[1] : null;
-  }
+  // // Hook initialization for chat functionalities with predefined system messages.
+  // const {
+  //   messages: checkChatMessages,
+  //   append: checkMessagesAppend,
+  //   isLoading: checkMessagesLlmLoading,
+  //   stop: checkMessagesStop,
+  // } = useChat({
+  //   id: "brainCheck",
+  //   api: "/api/quickBrainCheck", // Groq API endpoint
+  //   initialMessages: [checkSystemMessage],
+  //   onResponse: res => {
+  //     setResponseStarted(true); // Trigger when response is received
+  //   }
+  // });
 
-  // Processes input string to evaluate and append as user message.
-  const checkMessage = (inputString) => {
-    setUserInput(inputString);
-    const patientResponse = inputString;
-    const therapistPrompt = chatMessages[chatMessages.length -1].content;
-    if (!therapistPrompt) return;
-    const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
-    checkMessagesAppend({
-      role: "user",
-      content: promptInput,
-    });
-  };
 
-  // Handle dynamic response creation and interaction flow management.
-  useEffect(() => {
-    if (checkChatMessages.length > 0 && responseStarted) {
-      const lastMessage = checkChatMessages[checkChatMessages.length - 1];
-      if (lastMessage?.role !== 'user') {
-        const lastMessageContent = lastMessage?.content;
-        if (lastMessageContent) {
-          const answer = extractProblemAnswer(lastMessageContent);
-          const response = ` <response> ${userInput} </response>`;
-          let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
-          let nextInstructions = '';
-
-          if (['true', 'True', 'TRUE'].includes(answer)) {
-            if(onMainThread){
-              nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
-              setMainThreadMessageMarker(chatMessages.length + 1);
-              setPromptLineCount(promptLineCount + 1);
-            } else {
-              nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
-              nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-              setOnMainThread(true);
-            }
-          } else {
-            nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
-            nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-            setOnMainThread(false);
-          }
-
-          const newPrompt = instructions + response + nextInstructions;
-          setUserInput(undefined);
-          checkMessagesStop();
-          appendUserMessage(newPrompt);
-          setResponseStarted(false);
-        }
-      }
-    }
-  }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
-
-  // Append user-generated content to the chat.
-  const appendUserMessage = (inputString) => {
-    append({
-      role: "user",
-      content: inputString,
-    });
-  };
-
-  // Handles user input submission by preprocessing before LLM processing.
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault(); // Prevent form submission defaults
-    if (!input.trim()) {
-      console.error("Input is empty or only whitespace.");
-      return;
-    }
-    checkMessage(input); // Process and check the message
-    setInput(""); // Clear input after submission
-  }, [input, append, handleInputChange]);
 
 
   /**

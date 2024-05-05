@@ -1,18 +1,21 @@
-export const checkMessagePromptContent = (patientResponse, therapistPrompt) => { const content = 
-`Here is my problem: Is the response a good answer to the prompt? Follow these instructions to arrive at the solution. Let's think step by step. 
-1. What is the question or questions in the prompt? 
-2. Is there information from the prompt that helps us better understand the context of the question(s)? 
-3. What is the response? 
-4. Is there information from the response that helps us better understand the context of the question(s)? 
-5. What is the context of the response? Are there any person, places, things, or ideas mentioned in the response that we should research in order to understand if the response is a good answer to the questions in the prompt? Research these items if they exist. 
-6. Given the context and the response, is the response a good answer to the question(s) in the prompt? If the response is a good answer to the question(s), respond true and stop. Otherwise proceed to the next step. 
-7. Let's assume the response is attempting to answer the question. Is the response abbreviated? Can we expand this response to be a better answer to the question(s) without changing the context of the original response? If the answer is abbreviated and can be expanded to be a better answer without changing the context, then respond true. 
-If either step 6 or 7 above is true, then respond true. Here is the response:
-<response>${patientResponse}</response>
-Here is the prompt:
-<prompt>${therapistPrompt}</prompt>
-Please respond in this format:
-<reasoning>Insert your justification for your answer based on your solutions to the instructions above here</reasoning>
-<problemAnswer>Insert your answer to my problem here. Only respond true or false</problemAnswer>
+export const checkMessagePromptContent = (patientResponse, nextInstruction, falseInstruction) => { const content = 
+  `Here are my instructions. Follow them exactly.  Let's think step by step. 
+  1. This is the my response: <response> ${patientResponse} </response>
+  2. Enclose your answer to steps 3 through 13 in this xml tag <checkmessage> </checkmessage>. 
+  3. Here is my problem: Is my response a good answer to the previous prompt? Follow these instructions to arrive at the solution.
+  4. What is the question(s) in the previous prompt? 
+  5. Is there information from the previous prompt that helps us better understand the context of the question(s)? 
+  6. What is my response? 
+  7. Is there information from my response that helps us better understand the context of the question(s)? 
+  8. What is the context of my response? Are there any person, places, things, or ideas mentioned in the response that we should research in order to understand if the response is a good answer to the question(s) in the previous prompt? Research these items if they exist.
+  9. Given the context and the response, is there a high probability that my response is a good answer to the question(s) in the previous prompt? If the response is a good answer to the question(s), respond true to my problem and skip to step 14. 
+  10. If the question(s) are broad and general, does the response contain a specific or more narrowly focused answer that is still relevant to the broad and general question(s)? If yes, respond true to my problem and skip to step 14. 
+  11. Let's assume the response is attempting to answer the question. Is there a high probability the response is abbreviated? Can we expand this response to be a better answer to the question(s) without changing the context of the original response? If there is a high probability that the answer is abbreviated and can be expanded to be a better answer without changing the context, respond true to my problem and skip to step 14.  
+  12. Let's assume the response has too much information. If we remove the extra information is there a high probability that a complete answer or an abbreviated answer is present in my response? If the response has too much information but still contains a complete or abbreviated answer to the question(s),respond true to my problem and skip to step 14. 
+  13. If either step 10, 11, 12, or 13 is true, respond true to my problem and skip to step 14. Otherwise, respond false to my problem and skip to step 15."
+  14. If you responded true to my problem: output your answer to this step in this xml tag <reply></reply>. here are the instructions: ${nextInstruction}
+  15. If you responded false to my problem: output your answer to this step in this xml tag <reply></reply>. here are the instructions: ${falseInstruction}
+  16. if you responded true to my problem output this xml tag <checkBoolean>true</checkBoolean>
+  17. if you responded false to my problem output this xml tag <checkBoolean>false</checkBoolean>
 `
 return content};

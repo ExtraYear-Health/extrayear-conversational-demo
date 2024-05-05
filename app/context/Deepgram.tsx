@@ -225,7 +225,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     }
     if (!state.llm){
       console.log('set llm');
-      dispatch({ type: 'SET_LLM', payload: "groq-llama3-70b" });
+      dispatch({ type: 'SET_LLM', payload: "groq-llama3-8b" });
     }
   }, [state.connection, state.sttOptions, state.ttsOptions, state.llm]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
