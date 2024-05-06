@@ -234,13 +234,14 @@ export default function Conversation(): JSX.Element {
     // Extract the boolean result and handle potential null value
     const booleanResult = extractResponseSections(inputString, 'checkBoolean');
     console.log('booleanResult', booleanResult);
-    // if (!booleanResult) {
-    //   throw new Error('Boolean result not found in the message.');
-    // }
+    if (!booleanResult) {
+      console.log('boolean not found');
+      throw new Error('Boolean result not found in the message.');
+    }
     if (['true', 'True', 'TRUE'].includes(booleanResult)) {
       setOnMainThread(true);
       setPromptLineCount(promptLineCount + 1);
-      setMainThreadMessageMarker(chatMessages.length + 1);
+      setMainThreadMessageMarker(chatMessages.length-1);
     } else {
       setOnMainThread(false);
     }
@@ -264,71 +265,6 @@ export default function Conversation(): JSX.Element {
       setUserInput(null);
     }
   };
-
-  // // Handle dynamic response creation and interaction flow management.
-  // useEffect(() => {
-  //   if (checkChatMessages.length > 0 && responseStarted) {
-  //     const lastMessage = checkChatMessages[checkChatMessages.length - 1];
-  //     if (lastMessage?.role !== 'user') {
-  //       const lastMessageContent = lastMessage?.content;
-  //       if (lastMessageContent) {
-  //         const answer = extractProblemAnswer(lastMessageContent);
-  //         const response = ` <response> ${userInput} </response>`;
-  //         let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
-  //         let nextInstructions = '';
-
-  //         if (['true', 'True', 'TRUE'].includes(answer)) {
-  //           if(onMainThread){
-  //             nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
-  //             setMainThreadMessageMarker(chatMessages.length + 1);
-  //             setPromptLineCount(promptLineCount + 1);
-  //           } else {
-  //             nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
-  //             nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-  //             setOnMainThread(true);
-  //           }
-  //         } else {
-  //           nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
-  //           nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-  //           setOnMainThread(false);
-  //         }
-
-  //         const newPrompt = instructions + response + nextInstructions;
-  //         setUserInput(undefined);
-  //         checkMessagesStop();
-  //         appendUserMessage(newPrompt);
-  //         setResponseStarted(false);
-  //       }
-  //     }
-  //   }
-  // }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
-
-
-  
-  // const onFinish = useCallback((msg: any) => {
-  //     requestTtsAudio(msg);
-  //     //get true or false
-  //     const booleanResult = extractResponseSections(msg, 'checkBoolean');
-  //     if (['true', 'True', 'TRUE'].includes(booleanResult)) {
-  //       setOnMainThread(true);
-  //       setPromptLineCount(promptLineCount + 1);  //DO THIS HERE?
-  //       setMainThreadMessageMarker(chatMessages.length + 1);
-  //     } else {
-  //       setOnMainThread(false);
-  //     }
-  //     //get reply
-  //     const assistantReply = extractResponseSections(msg, 'reply');
-  //     if (chatMessages[chatMessages.length - 1].role === 'assistant'){
-  //       chatMessages[chatMessages.length - 1].content = assistantReply;
-  //     }
-  //     //get response from previous user message
-  //     const userReply = extractResponseSections(msg, 'response');
-  //     if (chatMessages[chatMessages.length - 2].role === 'user'){
-  //       chatMessages[chatMessages.length - 2].content = userReply;
-  //     }
-  //   },
-  //   [requestTtsAudio]
-  // );
 
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
@@ -411,18 +347,17 @@ export default function Conversation(): JSX.Element {
     }
   }, [state.llm]); 
 
-  //An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback((msg: any) => {
-    //fix message before tts
-    requestTtsAudio(msg);
+  // //An optional callback that will be called when the chat stream ends
+  // const onFinish = useCallback((msg: any) => {
+  //   //fix message before tts
+  //   requestTtsAudio(msg);
 
-    //move below to function
-    console.log('msg', msg);
+  //   //move below to function
+  //   console.log('msg', msg);
 
-    fixMessage(msg);
+  //   fixMessage(msg);
   
-
-  }, [requestTtsAudio]);
+  // }, [requestTtsAudio]);
   
   /**
    * AI SDK for the voicebot conversation
@@ -443,8 +378,6 @@ export default function Conversation(): JSX.Element {
     onResponse,
     // sendExtraMessageFields: true,
   });
-
-
 
   // Handles user input submission by preprocessing before LLM processing.
   const handleSubmit = useCallback(async (event) => {
@@ -474,7 +407,7 @@ export default function Conversation(): JSX.Element {
         if (currentUtterance) {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
-          checkMessage(currentUtterance); //if failsafe triggers then send whatever is in currentutterance to the LLM
+          appendUserMessage(currentUtterance); //if failsafe triggers then send whatever is in currentutterance to the LLM
           clearTimeout(failsafeTimeout);
           clearTranscriptParts();
           setCurrentUtterance(undefined);
@@ -526,10 +459,10 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
-    console.log(chatMessages[chatMessages.length - 1].content);
+    // console.log(chatMessages[chatMessages.length - 1].content);
     fixMessage(chatMessages[chatMessages.length - 1]);
-    console.log(chatMessages[chatMessages.length - 2]);
-    console.log(chatMessages[chatMessages.length - 1]);
+    // console.log(chatMessages[chatMessages.length - 2]);
+    // console.log(chatMessages[chatMessages.length - 1]);
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
     requestTtsAudio(chatMessages[chatMessages.length - 1]);
 
@@ -658,7 +591,7 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      checkMessage(content); 
+      appendUserMessage(content); 
       clearTimeout(failsafeTimeout);
       clearTranscriptParts();
       setCurrentUtterance(undefined);
