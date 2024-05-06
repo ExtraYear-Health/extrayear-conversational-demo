@@ -526,7 +526,7 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
-    console.log(chatMessages[chatMessages.length - 1]);
+    console.log(chatMessages[chatMessages.length - 1].content);
     fixMessage(chatMessages[chatMessages.length - 1]);
     console.log(chatMessages[chatMessages.length - 2]);
     console.log(chatMessages[chatMessages.length - 1]);
