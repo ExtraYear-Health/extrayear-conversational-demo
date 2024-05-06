@@ -86,6 +86,10 @@ export default function Conversation(): JSX.Element {
   const [isProcessing, setProcessing] = useState(false);
   const [processingPrompt, setProcessingPrompt] = useState(true);
   const [promptLineCount, setPromptLineCount] = useState(0);  // Initialize the counter to 0
+  const [userInput, setUserInput] = useState(null);
+  const [assistantResponse, setAssistantResponse] = useState(null);
+  const [onMainThread, setOnMainThread] = useState(true);
+  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  
 
   // Use this effect to process and initialize prompt content.
   useEffect(() => {
@@ -106,6 +110,7 @@ export default function Conversation(): JSX.Element {
       // Update state with the new lines and introductory content.
       setPromptLines(processedLines);
       setIntroContent(extractedContent);
+      setAssistantResponse(extractedContent);
       
       // Adjust the prompt line counter to skip the first two lines.
       setPromptLineCount(promptLineCount + 2);
@@ -181,12 +186,6 @@ export default function Conversation(): JSX.Element {
     [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player]
   );
 
-  //const [userInput, setUserInput] = useState(null);
-  //const [responseStarted, setResponseStarted] = useState(false);
-  const [onMainThread, setOnMainThread] = useState(true);
-  // const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
-  const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
-
   // Extracts the answer from the problem content using a regex.
   function extractResponseSections(content: string, xmlSearchString: string): string | null {
     let regex = null;
@@ -215,16 +214,55 @@ export default function Conversation(): JSX.Element {
   }
 
   // Processes input string to evaluate and append as user message.
-  const checkMessage = (inputString) => {
-    const falseInstruction = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
+  const checkMessage = (inputString: string) : string => {
+    const falseInstruction = 'Create an appropriate follow up statement to the question or statement in my response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 75 words or less.';
+    const lastAssistantMessage = chatMessages.findLast(({ role }) => role === 'assistant').content;
     let nextInstruction = null;
     if (onMainThread){
       nextInstruction = promptLines[promptLineCount];
     } else {
-      nextInstruction = `Create an appropriate follow up statement to the response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
+      nextInstruction = `Create an appropriate follow up statement to my response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
     }
-    const promptInput = checkMessagePromptContent(inputString, nextInstruction, falseInstruction);
-    appendUserMessage(promptInput);
+    const promptInput = checkMessagePromptContent(inputString, lastAssistantMessage, nextInstruction, falseInstruction);
+    return promptInput
+  };
+
+  // Processes input string to evaluate and append as user message.
+  const fixMessage = (msg: any) => {
+    console.log('fix message');
+    let inputString = msg.content;
+    // Extract the boolean result and handle potential null value
+    const booleanResult = extractResponseSections(inputString, 'checkBoolean');
+    console.log('booleanResult', booleanResult);
+    // if (!booleanResult) {
+    //   throw new Error('Boolean result not found in the message.');
+    // }
+    if (['true', 'True', 'TRUE'].includes(booleanResult)) {
+      setOnMainThread(true);
+      setPromptLineCount(promptLineCount + 1);
+      setMainThreadMessageMarker(chatMessages.length + 1);
+    } else {
+      setOnMainThread(false);
+    }
+  
+    // Extract the reply from the assistant and update the last assistant message
+    const assistantReply = extractResponseSections(inputString, 'reply');
+    console.log('assistantReply', assistantReply);
+    // if (!assistantReply) {
+    //   throw new Error('Assistant reply not found in the message.');
+    // }
+    const lastAssistantMessage = chatMessages.findLast(({ role }) => role === 'assistant');
+    if (lastAssistantMessage) {
+      lastAssistantMessage.content = assistantReply;
+    }
+  
+    // Extract the response from the user and update the last user message
+    console.log('userReply', userInput);
+    const lastUserMessage = chatMessages.findLast(({ role }) => role === 'user');
+    if (lastUserMessage) {
+      lastUserMessage.content = '<response> ' + userInput + ' </response>';
+      setUserInput(null);
+    }
   };
 
   // // Handle dynamic response creation and interaction flow management.
@@ -265,46 +303,7 @@ export default function Conversation(): JSX.Element {
   //   }
   // }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
 
-  //An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback((msg: any) => {
-    requestTtsAudio(msg);
 
-    //move below to function
-  
-    // Extract the boolean result and handle potential null value
-    const booleanResult = extractResponseSections(msg, 'checkBoolean');
-    if (!booleanResult) {
-      throw new Error('Boolean result not found in the message.');
-    }
-    if (['true', 'True', 'TRUE'].includes(booleanResult)) {
-      setOnMainThread(true);
-      setPromptLineCount(promptLineCount + 1);
-      setMainThreadMessageMarker(chatMessages.length + 1);
-    } else {
-      setOnMainThread(false);
-    }
-  
-    // Extract the reply from the assistant and update the last assistant message
-    const assistantReply = extractResponseSections(msg, 'reply');
-    if (!assistantReply) {
-      throw new Error('Assistant reply not found in the message.');
-    }
-    const lastAssistantMessage = chatMessages.findLast(({ role }) => role === 'assistant');
-    if (lastAssistantMessage) {
-      lastAssistantMessage.content = assistantReply;
-    }
-  
-    // Extract the response from the user and update the last user message
-    const userReply = extractResponseSections(msg, 'response');
-    if (!userReply) {
-      throw new Error('User reply not found in the message.');
-    }
-    const lastUserMessage = chatMessages.findLast(({ role }) => role === 'user');
-    if (lastUserMessage) {
-      lastUserMessage.content = userReply;
-    }
-  },
-  [requestTtsAudio, chatMessages, setOnMainThread, setPromptLineCount, setMainThreadMessageMarker]);
   
   // const onFinish = useCallback((msg: any) => {
   //     requestTtsAudio(msg);
@@ -333,11 +332,14 @@ export default function Conversation(): JSX.Element {
 
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
-    inputString = checkMessage(inputString);
+    console.log('input string', inputString)
+    setUserInput(inputString);
+    let newPrompt = checkMessage(inputString);
+    console.log('new prompt', newPrompt);
     //fix things here and change content
     append({
       role: "user",
-      content: inputString,
+      content: newPrompt,
     });
   };
 
@@ -400,6 +402,7 @@ export default function Conversation(): JSX.Element {
     const newApiModel = state.llm?.llmModel || "gpt-3.5-turbo-16k-0613";
     // Update local state if the global model has changed
     if (bodyApi.llmModel !== newApiModel) {
+      console.log('new model', newApiModel);
       setBodyApi({
         llmModel: newApiModel,
         temperature: state.llm.settings.temperature, 
@@ -407,6 +410,19 @@ export default function Conversation(): JSX.Element {
       });
     }
   }, [state.llm]); 
+
+  //An optional callback that will be called when the chat stream ends
+  const onFinish = useCallback((msg: any) => {
+    //fix message before tts
+    requestTtsAudio(msg);
+
+    //move below to function
+    console.log('msg', msg);
+
+    fixMessage(msg);
+  
+
+  }, [requestTtsAudio]);
   
   /**
    * AI SDK for the voicebot conversation
@@ -423,10 +439,12 @@ export default function Conversation(): JSX.Element {
     api: chatApi,
     body: bodyApi,
     initialMessages: [systemMessage, promptMessage, greetingMessage],
-    onFinish,
+    // onFinish,
     onResponse,
     // sendExtraMessageFields: true,
   });
+
+
 
   // Handles user input submission by preprocessing before LLM processing.
   const handleSubmit = useCallback(async (event) => {
@@ -508,7 +526,12 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
+    console.log(chatMessages[chatMessages.length - 1]);
+    fixMessage(chatMessages[chatMessages.length - 1]);
+    console.log(chatMessages[chatMessages.length - 2]);
+    console.log(chatMessages[chatMessages.length - 1]);
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
+    requestTtsAudio(chatMessages[chatMessages.length - 1]);
 
     const latestLlmMessage: MessageMetadata = {
       ...chatMessages[chatMessages.length - 1],
@@ -787,9 +810,9 @@ export default function Conversation(): JSX.Element {
                           <RightBubble text={currentUtterance}></RightBubble>
                         )}
 
-                        {userInput && (
+                        {/* {userInput && (
                           <RightBubble text={userInput}></RightBubble>
-                        )}
+                        )} */}
 
                         <div
                           className="h-16 col-start-1 col-end-13 responsive-hide"
