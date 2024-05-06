@@ -20,7 +20,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
     },
     "openai-gpt3.5-turbo": {
         llmProvider: "openai",
-        llmModel: "gpt-3.5-turbo-16k-0613",
+        llmModel: "gpt-3.5-turbo-0125",
         api: "/api/brain",
         settings: {
           temperature: 1.0,
@@ -32,7 +32,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         llmModel: "Llama3-8b-8192",
         api: "/api/groq",
         settings: {
-          temperature: 1.0,
+          temperature: 1.0  ,
           maxTokens: 2048,
         }
       },

@@ -1,5 +1,5 @@
 export const checkMessagePromptContent = (patientResponse, previousAssistantPrompt, nextInstruction, falseInstruction) => { const content = 
-  `Follow the instructions below to determine if my response is appropriate for the previous prompt. Output all of your answers to the steps below. Do not output the steps again.
+  `Follow the instructions below to determine if my response is appropriate for the previous prompt. Output all of your answers to the steps below. Do not output the steps again Output the boolean result in the XML tag <checkBoolean></checkBoolean>. Output your reply in the XML tag <reply></reply>.
   1. Extract the question(s) from the previous prompt.
   2. What topics are present in the question(s)?
   3. Do you need to research any of these topics to understand them better? If so, do that now.

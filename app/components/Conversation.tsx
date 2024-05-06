@@ -187,31 +187,42 @@ export default function Conversation(): JSX.Element {
   );
 
   // Extracts the answer from the problem content using a regex.
-  function extractResponseSections(content: string, xmlSearchString: string): string | null {
+  function extractResponseSections(content, xmlSearchString) {
     let regex = null;
+    let match = null;
 
     // Define the regex pattern based on the input xmlSearchString.
     switch(xmlSearchString){
-      case 'response':
-        regex = /<response>(.*?)<\/response>/;
-        break;
-      case 'reply':
-        regex = /<reply>(.*?)<\/reply>/;
-        break;
-      case 'checkBoolean':
-        regex = /<checkBoolean>(.*?)<\/checkBoolean>/;
-        break;
-      default:
-        // Return null if xmlSearchString does not match any case.
-        return null;
+        case 'response':
+            regex = /<response>(.*?)<\/response>/;
+            break;
+        case 'reply':
+            regex = /<reply>(.*?)<\/reply>/;
+            break;
+        case 'checkBoolean':
+            regex = /<checkBoolean>(.*?)<\/checkBoolean>/;
+            break;
+        default:
+            // Return null if xmlSearchString does not match any case.
+            return null;
     }
 
-    // Execute the regex to find a match.
-    const match = content.match(regex);
+    // Execute the regex to find a full match.
+    match = content.match(regex);
+    if (match) {
+        // Return the first capturing group if a full match is found.
+        return match[1];
+    } else if (xmlSearchString === 'reply') {
+        // If no full match and the tag is 'reply', find the first occurrence of <reply> and return all text after it.
+        const fallbackRegex = /<reply>([\s\S]*)/;
+        match = content.match(fallbackRegex);
+        return match ? match[1] : null;
+    }
 
-    // Return the first capturing group if a match is found, otherwise return null.
-    return match ? match[1] : null;
-  }
+    // Return null if no matches were found.
+    return null;
+}
+
 
   // Processes input string to evaluate and append as user message.
   const checkMessage = (inputString: string) : string => {
@@ -459,7 +470,7 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
-    // console.log(chatMessages[chatMessages.length - 1].content);
+    console.log(chatMessages[chatMessages.length - 1].content);
     fixMessage(chatMessages[chatMessages.length - 1]);
     // console.log(chatMessages[chatMessages.length - 2]);
     // console.log(chatMessages[chatMessages.length - 1]);

@@ -116,7 +116,7 @@ function promptTextArray(text: string): string[] {
  * @returns {string|null} The extracted intro content, or null if no intro section is found.
  */
 function extractIntroContent(content: string): string | null {
-  const introRegex = /<intro>(.*?)<intro\/>/s;  // Use the 's' flag for dotAll, allowing '.' to match newline characters
+  const introRegex = /<intro>(.*?)<\/intro>/s;  // Use the 's' flag for dotAll, allowing '.' to match newline characters
   const match = content.match(introRegex);
   return match ? match[1].trim() : null;  // Return the captured group if the pattern matches
 };
