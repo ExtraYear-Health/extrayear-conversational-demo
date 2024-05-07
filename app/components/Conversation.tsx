@@ -39,7 +39,7 @@ import { articleConversationContent } from "../prompts/articleConversation";
 import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
 import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
 import { checkMessagePromptContent } from "../prompts/checkMessage";
-import { simpleArticleConversationContent } from "../prompts/simpleNewsArticleConversation";
+import { londonMarathonArticleConversation } from "../prompts/londonMarathonArticleConversation";
 
 
 /**
@@ -208,7 +208,7 @@ export default function Conversation(): JSX.Element {
   const promptMessage: Message = useMemo(() => ({
     id: 'AAAA',  
     role: "user",
-    content: systemContent + ' ' + newsArticleConversationContent, simpleArticleConversationContent
+    content: systemContent + ' ' + newsArticleConversationContent, //
   }), []); 
 
   // Define a state to hold the current API endpoint for the chat functionality.

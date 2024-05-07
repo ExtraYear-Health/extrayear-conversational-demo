@@ -9,6 +9,7 @@ import { useDeepgram } from "../context/Deepgram"; // Ensure the path matches wh
 import { llmModels, llmModelMap, LLMModelConfig } from "../context/LLM";
 import { DeepgramContext } from "../context/Deepgram";
 import { useToast } from "../context/Toast";
+import { prompts, PromptConfig } from "../context/promptList"; // Update the import path as needed
 
 
 const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetStateAction<string>> }> = ({ llmModel, setLLMModel }) => {
@@ -34,12 +35,42 @@ const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetS
   );
 };
 
+interface PromptSelectionProps {
+  selectedPrompt: string;
+  setSelectedPrompt: Dispatch<SetStateAction<string>>;
+}
+
+const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSelectedPrompt }) => {
+  const promptOptions = Object.entries(prompts).map(([key, value]) => ({
+    key,
+    label: value.title,
+    description: value.description
+  }));
+
+  return (
+    <Select
+      value={selectedPrompt}
+      onChange={(e) => setSelectedPrompt(e.target.value)}
+      label="Select a Prompt"
+      variant="bordered"
+    >
+      {promptOptions.map((option) => (
+        <SelectItem key={option.key} value={option.key} textValue={option.label}>
+          {option.label}
+        </SelectItem>
+      ))}
+    </Select>
+  );
+};
+
 export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: boolean }) => {
   const { state, dispatch } = useContext(DeepgramContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const initialLLMModel = state.llm?.llmModel || 'openai-gpt4-turbo';
   const { toast } = useToast();
   const [llmModel, setLLMModel] = useState<string>(initialLLMModel);
+  const initialPrompt = "londonMarathonArticleConversation"; //TODO: define default setup elsewhere
+  const [selectedPrompt, setSelectedPrompt] = useState<string>(initialPrompt);
 
   const saveAndClose = () => {
     dispatch({
@@ -84,7 +115,12 @@ export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: bo
               <>{isBrowser ? "Click" : "Tap"} here to start</>
             )}
           </button>
-          <LLMModelSelection llmModel={llmModel} setLLMModel={setLLMModel} />
+          <div className="my-2.5">
+            <LLMModelSelection llmModel={llmModel} setLLMModel={setLLMModel} />
+          </div>
+          <div className="my-2.5">
+            <PromptSelection selectedPrompt={selectedPrompt} setSelectedPrompt={setSelectedPrompt} />
+          </div>
         </div>
       </div>
     </>
