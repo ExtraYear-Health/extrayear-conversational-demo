@@ -290,31 +290,59 @@ export default function Conversation(): JSX.Element {
   const [currentUtterance, setCurrentUtterance] = useState<string>();
   const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>();
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
+  const currentUtteranceRef = useRef<string>();
+
+  // Update the ref whenever currentUtterance changes
+  useEffect(() => {
+    currentUtteranceRef.current = currentUtterance;
+  }, [currentUtterance]);
 
   const onSpeechEnd = useCallback(() => {
-    /**
-     * We have the audio data context available in VAD
-     * even before we start sending it to deepgram.
-     * So ignore any VAD events before we "open" the mic.
-     */
     if (!microphoneOpen) return;
 
-    setFailsafeTimeout(
-      setTimeout(() => {
-        if (currentUtterance) {
-          console.log("failsafe fires! pew pew!!");
-          setFailsafeTriggered(true);
-          appendUserMessage(currentUtterance);
-          clearTimeout(failsafeTimeout);
-          clearTranscriptParts();
-          setCurrentUtterance(undefined);
-        }
-      }, 3000)
-    );
+    const failsafeAction = () => {
+      const utterance = currentUtteranceRef.current;
+      if (utterance) {
+        console.log("failsafe fires! pew pew!!", utterance);
+        setFailsafeTriggered(true);
+        appendUserMessage(utterance);
+        clearTranscriptParts();
+        setCurrentUtterance(undefined); // Consider whether this should also reset the ref
+        currentUtteranceRef.current = undefined; // Ensure the ref is also cleared
+      }
+    };
+
+    // Set the failsafe timeout
+    const timeoutId = setTimeout(failsafeAction, 1500);
+    setFailsafeTimeout(timeoutId);
 
     return () => {
-      clearTimeout(failsafeTimeout);
+      clearTimeout(timeoutId);
     };
+    // /**
+    //  * We have the audio data context available in VAD
+    //  * even before we start sending it to deepgram.
+    //  * So ignore any VAD events before we "open" the mic.
+    //  */
+    // if (!microphoneOpen) return;
+
+    // setFailsafeTimeout(
+    //   setTimeout(() => {
+    //     if (currentUtterance) {
+    //       console.log("failsafe fires! pew pew!!");
+    //       setFailsafeTriggered(true);
+    //       console.log('speech end1', currentUtterance);
+    //       //appendUserMessage(currentUtterance);
+    //       clearTimeout(failsafeTimeout);
+    //       clearTranscriptParts();
+    //       setCurrentUtterance(undefined);
+    //     }
+    //   }, 2000) //originally 1500
+    // );
+
+    // return () => {
+    //   clearTimeout(failsafeTimeout);
+    // };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneOpen, currentUtterance]);
@@ -357,7 +385,6 @@ export default function Conversation(): JSX.Element {
 
     //Remove extra characters from LLM response.
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
-    console.log(chatMessages);
 
     const latestLlmMessage: MessageMetadata = {
       ...chatMessages[chatMessages.length - 1],
@@ -420,7 +447,7 @@ export default function Conversation(): JSX.Element {
         speech_final: data.speech_final as boolean,
         text: content,
       });
-      //setCurrentUtterance(content); // Update the currentUtterance state here
+      // setCurrentUtterance(content); // Update the currentUtterance state here
     }
   }, [addTranscriptPart]);
 
