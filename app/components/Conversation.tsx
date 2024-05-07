@@ -34,14 +34,6 @@ import { useMessageCheck } from "../context/MessageCheck";
 import { LeftBubble } from "./LeftBubble";
 import { llmModels, LLMModelConfig } from "../context/LLM";
 
-//prompts
-import { articleConversationContent } from "../prompts/articleConversation";
-import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
-import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
-import { checkMessagePromptContent } from "../prompts/checkMessage";
-import { londonMarathonArticleConversation } from "../prompts/londonMarathonArticleConversation";
-
-
 /**
  * Conversation element that contains the conversational AI app.
  * @returns {JSX.Element}
@@ -87,23 +79,22 @@ export default function Conversation(): JSX.Element {
   // Use this effect to process and initialize prompt content.
   useEffect(() => {
     // Check if we need to process the prompt.
-    if (processingPrompt) {
-      const promptString = newsArticleConversationContent; 
+    if (processingPrompt && state.selectedPrompt) {
+      const promptString = state.selectedPrompt.text; 
 
       // Validate the prompt string to ensure it's usable.
       if (!promptString || promptString.trim() === '') {
-        console.log('newsArticleConversationContent is null or empty');
+        console.log('prompt is null or empty');
         return; // Halt execution if the prompt content is invalid.
       }
     
-      const extractedContent = extractIntroContent(newsArticleConversationContent);
-    
+      const extractedContent = extractIntroContent(promptString);
       setIntroContent(extractedContent);
       
       // Mark prompt processing as complete.
       setProcessingPrompt(false);
     }
-  }, [processingPrompt]); 
+  }, [processingPrompt, state.selectedPrompt]); 
 
 
   // Defines a memoized function to request TTS audio using current TTS settings.
@@ -199,17 +190,41 @@ export default function Conversation(): JSX.Element {
     []
   );
 
+  //Anthropic does not accept system messages
+  const userSystemMessage: Message = useMemo(
+    () => ({
+      id: 'AAAA',
+      role: "user",
+      content: systemContent,
+    }),
+    []
+  );
+
   const greetingMessage: Message = useMemo(() => ({
     id: generateRandomString(7),
     role: "assistant",
     content: introContent,
   }), [introContent]); 
+
+  const promptMessage: Message = useMemo(() => {
+    // Check if processing is not completed and return a default or null object
+    if (processingPrompt) {
+      return null; // or return some default state that indicates processing is ongoing
+    }
   
-  const promptMessage: Message = useMemo(() => ({
-    id: 'AAAA',  
-    role: "user",
-    content: systemContent + ' ' + newsArticleConversationContent, //
-  }), []); 
+    // Return the actual prompt message object once processing is complete
+    return {
+      id: 'AAAB',  
+      role: "user",
+      content: state.selectedPrompt.text, // Access text safely assuming state.selectedPrompt is defined
+    };
+  }, [state.selectedPrompt, processingPrompt]);
+  
+  // const promptMessage: Message = useMemo(() => ({
+  //   id: 'AAAB',  
+  //   role: "user",
+  //   content: state.selectedPrompt.text, //
+  // }), [state.selectedPrompt]); 
 
   // Define a state to hold the current API endpoint for the chat functionality.
   const [chatApi, setChatApi] = useState(state.llm?.api || "/api/brain");
@@ -267,7 +282,7 @@ export default function Conversation(): JSX.Element {
     id: "aura",
     api: chatApi,
     body: bodyApi,
-    initialMessages: [promptMessage, greetingMessage],//[systemMessage, promptMessage, greetingMessage],
+    initialMessages: [userSystemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
   });
@@ -277,7 +292,6 @@ export default function Conversation(): JSX.Element {
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
 
   const onSpeechEnd = useCallback(() => {
-    console.log('speech end', currentUtterance);
     /**
      * We have the audio data context available in VAD
      * even before we start sending it to deepgram.
@@ -343,6 +357,7 @@ export default function Conversation(): JSX.Element {
 
     //Remove extra characters from LLM response.
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
+    console.log(chatMessages);
 
     const latestLlmMessage: MessageMetadata = {
       ...chatMessages[chatMessages.length - 1],
@@ -398,7 +413,6 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
-    console.log('transcipt', content);
 
     if (content !== "" || data.speech_final) {
       addTranscriptPart({
@@ -589,7 +603,7 @@ export default function Conversation(): JSX.Element {
                     <>
                         {!processingPrompt && chatMessages.length > 0 &&
                           chatMessages.map((message, i) => {
-                            if (message.id === 'AAAA'){ //|| !message.content
+                            if (message.id === 'AAAA' || message.id === 'AAAB'){ //|| !message.content
                               return null
                             }
                             return <ChatBubble message={message} key={i} />

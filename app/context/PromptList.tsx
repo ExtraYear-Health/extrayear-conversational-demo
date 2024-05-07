@@ -1,3 +1,8 @@
+//prompts
+import { articleConversationContent } from "../prompts/articleConversation";
+import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
+import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
+import { checkMessagePromptContent } from "../prompts/checkMessage";
 import { londonMarathonArticleConversation } from "../prompts/londonMarathonArticleConversation";
 
 export interface PromptConfig {
@@ -10,7 +15,7 @@ export interface PromptConfig {
 }
 
 
-export const prompts: { [key: string]: PromptConfig } = {
+export const promptData: { [key: string]: PromptConfig } = {
   "londonMarathonArticleConversation": {
     id: "londonMarathonArticleConversation",
     title: "London Marathon Article Conversation",
@@ -21,6 +26,6 @@ export const prompts: { [key: string]: PromptConfig } = {
 };
 
 export const getPromptConfig = (promptId: string): PromptConfig | undefined => {
-  return prompts[promptId];
+  return promptData[promptId];
 };
 

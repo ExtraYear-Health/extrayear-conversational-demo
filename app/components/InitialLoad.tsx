@@ -9,7 +9,7 @@ import { useDeepgram } from "../context/Deepgram"; // Ensure the path matches wh
 import { llmModels, llmModelMap, LLMModelConfig } from "../context/LLM";
 import { DeepgramContext } from "../context/Deepgram";
 import { useToast } from "../context/Toast";
-import { prompts, PromptConfig } from "../context/promptList"; // Update the import path as needed
+import { promptData, PromptConfig } from "../context/PromptList"; // Update the import path as needed
 
 
 const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetStateAction<string>> }> = ({ llmModel, setLLMModel }) => {
@@ -41,7 +41,7 @@ interface PromptSelectionProps {
 }
 
 const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSelectedPrompt }) => {
-  const promptOptions = Object.entries(prompts).map(([key, value]) => ({
+  const promptOptions = Object.entries(promptData).map(([key, value]) => ({
     key,
     label: value.title,
     description: value.description
@@ -51,7 +51,7 @@ const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSe
     <Select
       value={selectedPrompt}
       onChange={(e) => setSelectedPrompt(e.target.value)}
-      label="Select a Prompt"
+      label="Select a Conversation"
       variant="bordered"
     >
       {promptOptions.map((option) => (
@@ -73,12 +73,22 @@ export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: bo
   const [selectedPrompt, setSelectedPrompt] = useState<string>(initialPrompt);
 
   const saveAndClose = () => {
+    // Dispatch the action to update the LLM model in the state
     dispatch({
       type: 'SET_LLM',
       payload: llmModel
     });
+  
+    // Dispatch the action to update the selected prompt in the state
+    dispatch({
+      type: 'SET_PROMPT',
+      payload: selectedPrompt // Make sure this variable holds the prompt ID or relevant identifier
+    });
+  
+    // Close the modal or dialog
     onClose();
   };
+  
 
   const handleButtonClick = () => {
     if (!connecting) {
