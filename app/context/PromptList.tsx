@@ -18,8 +18,8 @@ export interface PromptConfig {
 export const promptData: { [key: string]: PromptConfig } = {
   "londonMarathonArticleConversation": {
     id: "londonMarathonArticleConversation",
-    title: "London Marathon Article Conversation",
-    description: "A conversation about an amazing achievement at the London Marathon",
+    title: "Conversation about Two Articles",
+    description: "A conversation about two inspirational stories",
     text: londonMarathonArticleConversation,
   },
   // Additional prompts can be added here
