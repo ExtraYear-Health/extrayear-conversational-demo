@@ -39,6 +39,7 @@ import { articleConversationContent } from "../prompts/articleConversation";
 import { voyager1ConversationContent } from "../prompts/voyager1Conversation";
 import { newsArticleConversationContent } from "../prompts/newsArticlesConversation";
 import { checkMessagePromptContent } from "../prompts/checkMessage";
+import { simpleArticleConversationContent } from "../prompts/simpleNewsArticleConversation";
 
 
 /**
@@ -207,7 +208,7 @@ export default function Conversation(): JSX.Element {
   const promptMessage: Message = useMemo(() => ({
     id: 'AAAA',  
     role: "user",
-    content: newsArticleConversationContent,
+    content: systemContent + ' ' + newsArticleConversationContent, simpleArticleConversationContent
   }), []); 
 
   // Define a state to hold the current API endpoint for the chat functionality.
@@ -266,7 +267,7 @@ export default function Conversation(): JSX.Element {
     id: "aura",
     api: chatApi,
     body: bodyApi,
-    initialMessages: [systemMessage, promptMessage, greetingMessage],
+    initialMessages: [promptMessage, greetingMessage],//[systemMessage, promptMessage, greetingMessage],
     onFinish,
     onResponse,
   });
@@ -276,29 +277,37 @@ export default function Conversation(): JSX.Element {
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
 
   const onSpeechEnd = useCallback(() => {
-    /**
-     * We have the audio data context available in VAD
-     * even before we start sending it to deepgram.
-     * So ignore any VAD events before we "open" the mic.
-     */
-    if (!microphoneOpen) return;
+    console.log('speech end', currentUtterance);
+    const parts = getCurrentUtterance();
+    const last = parts[parts.length - 1];
+    const content = parts
+      .map(({ text }) => text)
+      .join(" ")
+      .trim();
+    console.log('speech end 2', content);
+    // /**
+    //  * We have the audio data context available in VAD
+    //  * even before we start sending it to deepgram.
+    //  * So ignore any VAD events before we "open" the mic.
+    //  */
+    // if (!microphoneOpen) return;
 
-    setFailsafeTimeout(
-      setTimeout(() => {
-        if (currentUtterance) {
-          console.log("failsafe fires! pew pew!!");
-          setFailsafeTriggered(true);
-          appendUserMessage(currentUtterance);
-          clearTimeout(failsafeTimeout);
-          clearTranscriptParts();
-          setCurrentUtterance(undefined);
-        }
-      }, 1500)
-    );
+    // setFailsafeTimeout(
+    //   setTimeout(() => {
+    //     if (currentUtterance) {
+    //       console.log("failsafe fires! pew pew!!");
+    //       setFailsafeTriggered(true);
+    //       appendUserMessage(currentUtterance);
+    //       clearTimeout(failsafeTimeout);
+    //       clearTranscriptParts();
+    //       setCurrentUtterance(undefined);
+    //     }
+    //   }, 1500)
+    // );
 
-    return () => {
-      clearTimeout(failsafeTimeout);
-    };
+    // return () => {
+    //   clearTimeout(failsafeTimeout);
+    // };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneOpen, currentUtterance]);
@@ -396,6 +405,7 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
+    console.log('transcipt', content);
 
     if (content !== "" || data.speech_final) {
       addTranscriptPart({
@@ -480,98 +490,6 @@ export default function Conversation(): JSX.Element {
     failsafeTriggered,
   ]);
 
-  /**
-   * Check if response is a good answer to the prompt
-   */
-
-  // // const [checkResponse, setCheckResponse] = useState(false);
-  // // const [loading, setLoading] = useState(false);
-  // const [userInput, setUserInput] = useState(null);
-  // const [responseStarted, setResponseStarted] = useState(false);
-  // const [onMainThread, setOnMainThread] = useState(true);
-  // const [mainThreadPromptMarker, setMainThreadPromptMarker] = useState(0);
-  // const [mainThreadMessageMarker, setMainThreadMessageMarker] = useState(0);  //need this?
-
-  //   // Memoize a system message to avoid re-creation on every render.
-  // const checkSystemMessage: Message = useMemo(() => ({
-  //   id: generateRandomString(7),
-  //   role: 'system',
-  //   content: 'You are a helpful assistant.',
-  // }), []);
-
-  // // Hook initialization for chat functionalities with predefined system messages.
-  // const {
-  //   messages: checkChatMessages,
-  //   append: checkMessagesAppend,
-  //   isLoading: checkMessagesLlmLoading,
-  //   stop: checkMessagesStop,
-  // } = useChat({
-  //   id: "brainCheck",
-  //   api: "/api/quickBrainCheck", // Groq API endpoint
-  //   initialMessages: [checkSystemMessage],
-  //   onResponse: res => {
-  //     setResponseStarted(true); // Trigger when response is received
-  //   }
-  // });
-
-  // // Extracts the answer from the problem content using a regex.
-  // function extractProblemAnswer(content: string): string | null {
-  //   const regex = /<problemAnswer>(.*?)<\/problemAnswer>/;
-  //   const match = content.match(regex);
-  //   return match ? match[1] : null;
-  // }
-
-  // // Processes input string to evaluate and append as user message.
-  // const checkMessage = (inputString) => {
-  //   setUserInput(inputString);
-  //   const patientResponse = inputString;
-  //   const therapistPrompt = chatMessages[chatMessages.length -1].content;
-  //   if (!therapistPrompt) return;
-  //   const promptInput = checkMessagePromptContent(patientResponse, therapistPrompt);
-  //   checkMessagesAppend({
-  //     role: "user",
-  //     content: promptInput,
-  //   });
-  // };
-
-  // // Handle dynamic response creation and interaction flow management.
-  // useEffect(() => {
-  //   if (checkChatMessages.length > 0 && responseStarted) {
-  //     const lastMessage = checkChatMessages[checkChatMessages.length - 1];
-  //     if (lastMessage?.role !== 'user') {
-  //       const lastMessageContent = lastMessage?.content;
-  //       if (lastMessageContent) {
-  //         const answer = extractProblemAnswer(lastMessageContent);
-  //         const response = ` <response> ${userInput} </response>`;
-  //         let instructions = 'Here is my response and your next instruction. Follow the instruction exactly.';
-  //         let nextInstructions = '';
-
-  //         if (['true', 'True', 'TRUE'].includes(answer)) {
-  //           if(onMainThread){
-  //             nextInstructions = ` <instructions> ${promptLines[promptLineCount]} </instructions>`;
-  //             setMainThreadMessageMarker(chatMessages.length + 1);
-  //             setPromptLineCount(promptLineCount + 1);
-  //           } else {
-  //             nextInstructions = `Create an appropriate follow up statement to this response. Then return to this previous prompt ${chatMessages[mainThreadMessageMarker]?.content}`;
-  //             nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-  //             setOnMainThread(true);
-  //           }
-  //         } else {
-  //           nextInstructions = 'Create a follow up statement to this response. Then ask me if I would like to continue with the cognitive rehab session. Your response must be 60 words or less.';
-  //           nextInstructions = ` <instructions> ${nextInstructions} </instructions>`;
-  //           setOnMainThread(false);
-  //         }
-
-  //         const newPrompt = instructions + response + nextInstructions;
-  //         setUserInput(undefined);
-  //         checkMessagesStop();
-  //         appendUserMessage(newPrompt);
-  //         setResponseStarted(false);
-  //       }
-  //     }
-  //   }
-  // }, [checkChatMessages, userInput, responseStarted, onMainThread, promptLineCount, chatMessages.length, mainThreadMessageMarker]);
-
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
     append({
@@ -579,17 +497,6 @@ export default function Conversation(): JSX.Element {
       content: inputString,
     });
   };
-
-  // Handles user input submission by preprocessing before LLM processing.
-  // const handleSubmit = useCallback(async (event) => {
-  //   event.preventDefault(); // Prevent form submission defaults
-  //   if (!input.trim()) {
-  //     console.error("Input is empty or only whitespace.");
-  //     return;
-  //   }
-  //   checkMessage(input); // Process and check the message
-  //   setInput(""); // Clear input after submission
-  // }, [input, append, handleInputChange]);
 
 
   /**
