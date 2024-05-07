@@ -15,7 +15,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
       api: "/api/brain",
       settings: {
         temperature: 1.0,
-        maxTokens: 2000,
+        maxTokens: 2048,
       }
     },
     "openai-gpt3.5-turbo": {
@@ -24,7 +24,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         api: "/api/brain",
         settings: {
           temperature: 1.0,
-          maxTokens: 2000,
+          maxTokens: 2048,
         }
       },
       "groq-llama3-8b": {
@@ -32,8 +32,8 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         llmModel: "Llama3-8b-8192",
         api: "/api/groq",
         settings: {
-          temperature: 0.2,
-          maxTokens: 2000,
+          temperature: 1.0,
+          maxTokens: 2048,
         }
       },
       "groq-llama3-70b": {
@@ -42,7 +42,7 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         api: "/api/groq",
         settings: {
           temperature: 1.0,
-          maxTokens: 2000,
+          maxTokens: 2048,
         }
       },
       "groq-mixtral-8x7b": {
@@ -51,7 +51,25 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
         api: "/api/groq",
         settings: {
           temperature: 1.0,
-          maxTokens: 2000,
+          maxTokens: 2048,
+        }
+      },
+      "cluade-3-opus-20240229": {
+        llmProvider: "Anthropic",
+        llmModel: "claude-3-opus-20240229",
+        api: "/api/anthropicLlm",
+        settings: {
+          temperature: 1.0,
+          maxTokens: 2048,
+        }
+      },
+      "cluade-3-sonnet-20240229": {
+        llmProvider: "Anthropic",
+        llmModel: "claude-3-sonnet-20240229",
+        api: "/api/anthropicLlm",
+        settings: {
+          temperature: 1.0,
+          maxTokens: 2048,
         }
       },
 //       "openai-gpt4": {
