@@ -306,12 +306,12 @@ export default function Conversation(): JSX.Element {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
           console.log('speech end1', currentUtterance);
-          appendUserMessage(currentUtterance);
+          //appendUserMessage(currentUtterance);
           clearTimeout(failsafeTimeout);
-          clearTranscriptParts();
+          //clearTranscriptParts();
           setCurrentUtterance(undefined);
         }
-      }, 3000) //originally 1500
+      }, 2000) //originally 1500
     );
 
     return () => {
@@ -332,6 +332,7 @@ export default function Conversation(): JSX.Element {
     /**
      * We we're talking again, we want to wait for a transcript.
      */
+    clearTranscriptParts();
     setFailsafeTriggered(false);
 
     if (!player?.ended) {
@@ -423,7 +424,6 @@ export default function Conversation(): JSX.Element {
         speech_final: data.speech_final as boolean,
         text: content,
       });
-      setCurrentUtterance(content); // Update the currentUtterance state here
     }
   }, [addTranscriptPart]);
 
@@ -467,6 +467,7 @@ export default function Conversation(): JSX.Element {
      * failsafe was triggered since we last sent a message to TTS
      */
     if (failsafeTriggered) {
+      appendUserMessage(content);
       clearTranscriptParts();
       setCurrentUtterance(undefined);
       return;
