@@ -175,7 +175,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         interim_results: true,
         smart_format: true,
         endpointing: 550,
-        utterance_end_ms: 1500, //if changed, may need to change the value for the failsafe in Conversation.tsx as well.
+        utterance_end_ms: 3000, //if changed, may need to change the value for the failsafe in Conversation.tsx as well.
         filler_words: true,
       });
 

@@ -292,6 +292,7 @@ export default function Conversation(): JSX.Element {
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
 
   const onSpeechEnd = useCallback(() => {
+    console.log('speech end', currentUtterance);
     /**
      * We have the audio data context available in VAD
      * even before we start sending it to deepgram.
@@ -304,12 +305,13 @@ export default function Conversation(): JSX.Element {
         if (currentUtterance) {
           console.log("failsafe fires! pew pew!!");
           setFailsafeTriggered(true);
+          console.log('speech end1', currentUtterance);
           appendUserMessage(currentUtterance);
           clearTimeout(failsafeTimeout);
           clearTranscriptParts();
           setCurrentUtterance(undefined);
         }
-      }, 3000)
+      }, 3000) //originally 1500
     );
 
     return () => {
@@ -413,6 +415,7 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
+    console.log('transcript', content)
 
     if (content !== "" || data.speech_final) {
       addTranscriptPart({
@@ -420,7 +423,7 @@ export default function Conversation(): JSX.Element {
         speech_final: data.speech_final as boolean,
         text: content,
       });
-      //setCurrentUtterance(content); // Update the currentUtterance state here
+      setCurrentUtterance(content); // Update the currentUtterance state here
     }
   }, [addTranscriptPart]);
 
