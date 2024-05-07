@@ -278,36 +278,29 @@ export default function Conversation(): JSX.Element {
 
   const onSpeechEnd = useCallback(() => {
     console.log('speech end', currentUtterance);
-    const parts = getCurrentUtterance();
-    const last = parts[parts.length - 1];
-    const content = parts
-      .map(({ text }) => text)
-      .join(" ")
-      .trim();
-    console.log('speech end 2', content);
-    // /**
-    //  * We have the audio data context available in VAD
-    //  * even before we start sending it to deepgram.
-    //  * So ignore any VAD events before we "open" the mic.
-    //  */
-    // if (!microphoneOpen) return;
+    /**
+     * We have the audio data context available in VAD
+     * even before we start sending it to deepgram.
+     * So ignore any VAD events before we "open" the mic.
+     */
+    if (!microphoneOpen) return;
 
-    // setFailsafeTimeout(
-    //   setTimeout(() => {
-    //     if (currentUtterance) {
-    //       console.log("failsafe fires! pew pew!!");
-    //       setFailsafeTriggered(true);
-    //       appendUserMessage(currentUtterance);
-    //       clearTimeout(failsafeTimeout);
-    //       clearTranscriptParts();
-    //       setCurrentUtterance(undefined);
-    //     }
-    //   }, 1500)
-    // );
+    setFailsafeTimeout(
+      setTimeout(() => {
+        if (currentUtterance) {
+          console.log("failsafe fires! pew pew!!");
+          setFailsafeTriggered(true);
+          appendUserMessage(currentUtterance);
+          clearTimeout(failsafeTimeout);
+          clearTranscriptParts();
+          setCurrentUtterance(undefined);
+        }
+      }, 3000)
+    );
 
-    // return () => {
-    //   clearTimeout(failsafeTimeout);
-    // };
+    return () => {
+      clearTimeout(failsafeTimeout);
+    };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneOpen, currentUtterance]);
@@ -413,6 +406,7 @@ export default function Conversation(): JSX.Element {
         speech_final: data.speech_final as boolean,
         text: content,
       });
+      //setCurrentUtterance(content); // Update the currentUtterance state here
     }
   }, [addTranscriptPart]);
 
