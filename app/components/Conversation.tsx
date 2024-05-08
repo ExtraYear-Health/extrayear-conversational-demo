@@ -200,18 +200,24 @@ export default function Conversation(): JSX.Element {
     []
   );
 
-  const greetingMessage: Message = useMemo(() => ({
-    id: generateRandomString(7),
-    role: "assistant",
-    content: introContent,
-  }), [introContent]); 
+  const greetingMessage: Message = useMemo(() => {
+    // Check if processing is not completed and return a default or null object
+    if (processingPrompt) {
+      return null; // or return some default state that indicates processing is ongoing
+    }
+    return {
+      id: generateRandomString(7),
+      role: "assistant",
+      content: introContent,
+    }
+  }, [introContent, processingPrompt]); 
 
   const promptMessage: Message = useMemo(() => {
     // Check if processing is not completed and return a default or null object
     if (processingPrompt) {
       return null; // or return some default state that indicates processing is ongoing
     }
-  
+    
     // Return the actual prompt message object once processing is complete
     return {
       id: 'AAAB',  
