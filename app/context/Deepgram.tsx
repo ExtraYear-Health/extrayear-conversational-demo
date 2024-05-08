@@ -21,6 +21,7 @@ import React, {
 import { useToast } from "./Toast";
 import { voices, voiceMap } from "./Voices";
 import { llmModels, llmModelMap, LLMModelConfig } from "../context/LLM";
+import { promptData, PromptConfig, getPromptConfig } from "./PromptList";
 
 type DeepgramAction =
   | { type: 'SET_CONNECTING'; payload: boolean }
@@ -32,6 +33,7 @@ type DeepgramAction =
   | { type: 'SET_LLM_LATENCY'; payload: { start: number; response: number } }
   | { type: 'SET_API_KEY'; payload: string | undefined}
   | { type: 'SET_LLM'; payload: string | undefined}
+  | { type: 'SET_PROMPT'; payload: string | undefined}
   | { type: 'API_KEY_ERROR'; payload: Error }
   | { type: 'SET_LOADING_KEY'; payload: boolean };
 
@@ -47,6 +49,7 @@ type DeepgramState = {
   llmLatency?: { start: number; response: number };
   isLoadingKey: boolean;
   llm?: LLMModelConfig | undefined;
+  selectedPrompt?: PromptConfig | undefined; 
 };
 
 type DeepgramContext = {
@@ -68,6 +71,7 @@ const initialState = {
   connecting: false,             // Indicates whether the connection process is ongoing
   connectionReady: false,        // Indicates whether the connection is established and ready
   llm: undefined,
+  selectedPrompt: undefined,
 };
 
 const DeepgramContext = createContext<DeepgramContext>({ state: initialState, dispatch: () => undefined });
@@ -92,8 +96,6 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
       return { ...state, connection: null, connectionReady: false, connecting: false, apiKey: undefined, isLoadingKey: true };
     case 'SET_CONNECTION_READY':
       return { ...state, connectionReady: action.payload };
-    // case 'SET_TTS_OPTIONS':
-    //   return { ...state, ttsOptions: action.payload };
     case 'SET_TTS_OPTIONS':
       const voiceConfig = voices[action.payload.model]; //voices[action.payload.model];
       if (!voiceConfig) {
@@ -120,6 +122,13 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
       return { ...state, apiKeyError: action.payload };
     case 'SET_LOADING_KEY':
       return { ...state, isLoadingKey: action.payload };
+    case 'SET_PROMPT':
+      const promptConfig = getPromptConfig(action.payload); // Use getPromptConfig to find the prompt
+      if (!promptConfig) {
+        console.error("Prompt not found:", action.payload);
+        return state; // Optionally handle this error more gracefully
+      }
+      return { ...state, selectedPrompt: promptConfig }; // Set the found prompt config
     case 'SET_LLM':
       const llmConfig = llmModelMap(action.payload);
       if (!llmConfig) {
@@ -218,16 +227,20 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         model: "nova-2",
         interim_results: true,
         smart_format: true,
-        endpointing: 550,
-        utterance_end_ms: 1500,
-        filler_words: true,
+        endpointing: 550, // Time in milliseconds of silence to wait for before finalizing speech
+        // utterance_end_ms: 1500, sends utterance end object. doesn't seem to be enabled in this demo. requires interimResults to be true.
+        filler_words: true, 
       }});
     }
     if (!state.llm){
       console.log('set llm');
       dispatch({ type: 'SET_LLM', payload: "groq-llama3-8b"});
     }
-  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
+    // if (!state.selectedPrompt){
+    //   console.log('set prompt');
+    //   dispatch({ type: 'SET_PROMPT', payload: "cityGuess10"});
+    // }
+  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPrompt]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (
     <DeepgramContext.Provider value={{ state, dispatch }}>

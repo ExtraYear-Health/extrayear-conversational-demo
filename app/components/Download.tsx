@@ -25,7 +25,7 @@ const DownloadButton = ({ content }: { content: string }) => {
 export const Download = ({ messages }: { messages: Message[] }) => {
   const { audioStore } = useAudioStore();
   const context = messages
-    .filter((m) => ["user", "assistant"].includes(m.role))
+  .filter((m) => m !== null && m.role !== null && m.content !== null && ["user", "assistant"].includes(m.role))  // Ensure message, role, and content are not null
     .map((m) => {
       if (m.role === "assistant") {
         const foundAudio = audioStore.findLast((item) => item.id === m.id);
