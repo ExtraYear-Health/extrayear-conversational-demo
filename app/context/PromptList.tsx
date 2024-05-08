@@ -5,6 +5,7 @@ import { newsArticleConversationContent } from "../prompts/newsArticlesConversat
 import { checkMessagePromptContent } from "../prompts/checkMessage";
 import { londonMarathonArticleConversation } from "../prompts/londonMarathonArticleConversation";
 import { cityGuessTen } from "../prompts/cityGuessTen";
+import { icebreakerFriends } from "../prompts/icebreakerFriends";
 
 export interface PromptConfig {
   id: string;
@@ -18,15 +19,21 @@ export interface PromptConfig {
 export const promptData: { [key: string]: PromptConfig } = {
   "londonMarathonArticleConversation": {
     id: "londonMarathonArticleConversation",
-    title: "Conversation about Two Articles",
+    title: "Conversation about two articles",
     description: "A conversation about two inspirational stories",
     text: londonMarathonArticleConversation,
   },
   "cityGuess10": {
     id: "cityGuessTen",
-    title: "Conversational Geography Game",
+    title: "Conversational geography game",
     description: "A conversational guessing game about cities",
     text: cityGuessTen,
+  },
+  "icebreakerFriends": {
+    id: "icebreakerFriends",
+    title: "A conversation about friends and family",
+    description: "A conversational guessing game about cities",
+    text: icebreakerFriends,
   },
   // Additional prompts can be added here
 };
