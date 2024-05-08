@@ -227,9 +227,9 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         model: "nova-2",
         interim_results: true,
         smart_format: true,
-        endpointing: 550,
-        utterance_end_ms: 1500,
-        filler_words: true,
+        endpointing: 550, // Time in milliseconds of silence to wait for before finalizing speech
+        // utterance_end_ms: 1500, sends utterance end object. doesn't seem to be enabled in this demo. requires interimResults to be true.
+        filler_words: true, 
       }});
     }
     if (!state.llm){
