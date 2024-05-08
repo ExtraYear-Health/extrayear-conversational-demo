@@ -305,6 +305,7 @@ export default function Conversation(): JSX.Element {
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const currentUtteranceRef = useRef<string>();
+  const speechStartCheck = useRef(false);
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -320,6 +321,7 @@ export default function Conversation(): JSX.Element {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
         console.log("failsafe fires! pew pew!!", utterance);
+        speechStartCheck.current = false;
         setFailsafeTriggered(true);
         appendUserMessage(utterance);
         clearTranscriptParts();
@@ -336,22 +338,20 @@ export default function Conversation(): JSX.Element {
   };
 
   const onSpeechEnd = useCallback(() => {
-    console.log('speech end');
     if (!microphoneOpen) return;
+    speechStartCheck.current = false;
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
-  
+    speechStartCheck.current = true;
     // Clear the failsafe timeout if set
     if (failsafeTimeoutRef.current) {
       clearTimeout(failsafeTimeoutRef.current);
       failsafeTimeoutRef.current = null;
     }
-  
     setFailsafeTriggered(false);
-  
     if (player && !player.ended) {
       stopAudio();
       console.log("Barging in! SHH!");
@@ -434,9 +434,12 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
-    console.log('transcript', content);
 
     if (content !== "" || data.speech_final) {
+      if (!speechStartCheck.current){
+        console.log('failsafe fix');
+        setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
+      }
       addTranscriptPart({
         is_final: data.is_final as boolean,
         speech_final: data.speech_final as boolean,
@@ -479,7 +482,10 @@ export default function Conversation(): JSX.Element {
      * if the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
-    if (!content) return;
+    if (!content) {
+      console.log('content empty retun');
+      return;
+    }
 
     /**
      * failsafe was triggered since we last sent a message to TTS
@@ -494,7 +500,6 @@ export default function Conversation(): JSX.Element {
      * display the concatenated utterances
      */
     setCurrentUtterance(content);
-    console.log('setUtterance', content);
 
     /**
      * record the last time we recieved a word
@@ -507,12 +512,12 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      console.log('speech final');
       appendUserMessage(content);
       if (failsafeTimeoutRef.current) {
         clearTimeout(failsafeTimeoutRef.current);
         failsafeTimeoutRef.current = null;
       }
+      speechStartCheck.current = false;
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
@@ -531,7 +536,6 @@ export default function Conversation(): JSX.Element {
       content: inputString,
     });
   };
-
 
   /**
    * magic microphone audio queue processing
