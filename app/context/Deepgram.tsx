@@ -236,10 +236,10 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       console.log('set llm');
       dispatch({ type: 'SET_LLM', payload: "groq-llama3-8b"});
     }
-    if (!state.selectedPrompt){
-      console.log('set prompt');
-      dispatch({ type: 'SET_PROMPT', payload: "londonMarathonArticleConversation"});
-    }
+    // if (!state.selectedPrompt){
+    //   console.log('set prompt');
+    //   dispatch({ type: 'SET_PROMPT', payload: "cityGuess10"});
+    // }
   }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPrompt]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (
