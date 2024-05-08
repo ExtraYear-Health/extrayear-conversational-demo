@@ -317,7 +317,6 @@ export default function Conversation(): JSX.Element {
   }, []);
 
   const setupFailsafeTimeout = () => {
-    console.log('setup failsafe');
     const failsafeAction = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
@@ -340,25 +339,19 @@ export default function Conversation(): JSX.Element {
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
-    console.log('speech end');
     speechStartCheck.current = false;
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
-    console.log('speech start');
-
     speechStartCheck.current = true;
-  
     // Clear the failsafe timeout if set
     if (failsafeTimeoutRef.current) {
       clearTimeout(failsafeTimeoutRef.current);
       failsafeTimeoutRef.current = null;
     }
-  
     setFailsafeTriggered(false);
-  
     if (player && !player.ended) {
       stopAudio();
       console.log("Barging in! SHH!");
@@ -441,7 +434,6 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
-    console.log('transcript', content);
 
     if (content !== "" || data.speech_final) {
       if (!speechStartCheck.current){
@@ -458,7 +450,6 @@ export default function Conversation(): JSX.Element {
 
   useEffect(() => {
     const onOpen = () => {
-      console.log('on open transcript events');
       state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
     };
 
@@ -500,7 +491,6 @@ export default function Conversation(): JSX.Element {
      * failsafe was triggered since we last sent a message to TTS
      */
     if (failsafeTriggered) {
-      console.log('failsafetriggered useeffed');
       clearTranscriptParts();
       setCurrentUtterance(undefined);
       return;
@@ -510,7 +500,6 @@ export default function Conversation(): JSX.Element {
      * display the concatenated utterances
      */
     setCurrentUtterance(content);
-    console.log('setUtterance', content);
 
     /**
      * record the last time we recieved a word
@@ -523,7 +512,6 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      console.log('speech final', content);
       appendUserMessage(content);
       if (failsafeTimeoutRef.current) {
         clearTimeout(failsafeTimeoutRef.current);
@@ -548,7 +536,6 @@ export default function Conversation(): JSX.Element {
       content: inputString,
     });
   };
-
 
   /**
    * magic microphone audio queue processing
