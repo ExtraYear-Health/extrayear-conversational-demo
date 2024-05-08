@@ -100,64 +100,64 @@ export default function Conversation(): JSX.Element {
   // Defines a memoized function to request TTS audio using current TTS settings.
   const requestTtsAudio = useCallback(
     async (message: Message) => {
-      const start = Date.now();
-      const model = state.ttsOptions?.model ?? "aura-asteria-en";  // Default model fallback
+        const start = Date.now();
+        const model = state.ttsOptions?.model ?? "aura-asteria-en";  // Default model fallback
 
-      let res: Response | null = null;
-      try {
-        // Request audio generation based on the TTS provider set in the state
-        if (state.ttsOptions?.ttsProvider === 'deepgram') {
-          res = await fetch(`/api/speak?model=${model}`, {
-            cache: "no-store",
-            method: "POST",
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(message),
-          });
-        } else if (state.ttsOptions?.ttsProvider === 'elevenlabs') {
-          res = await fetch('/api/natural-speak', {
-            cache: "no-store",
-            method: "POST",
-            //headers: {'Content-Type': 'application/json'},
-            //body: JSON.stringify(message),
-            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
-          });
-        }
-
-        // Check response validity and log any failures
-        if (!res || !res.ok) {
-          console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
-          return;
-        }
-
-        const blob = await res.blob();
-        stopMicrophone();  // Stop microphone during playback
-
-        // Calculate the latency and play the received TTS audio
-        const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
-        startAudio(blob, "audio/mp3", message.id).then(() => {
-          addAudio({
-            id: message.id,
-            blob,
-            latency,
-            networkLatency: Date.now() - start,
-            model,
-          });
-
-          // Restart the microphone after audio ends if the player exists
-          if (player) {
-            player.onended = () => {
-              setProcessing(false);
-              startMicrophone();
-            };
-          } else {
-            console.error('Player is undefined');
+        let res: Response | null = null;
+        try {
+          // Request audio generation based on the TTS provider set in the state
+          if (state.ttsOptions?.ttsProvider === 'deepgram') {
+            res = await fetch(`/api/speak?model=${model}`, {
+              cache: "no-store",
+              method: "POST",
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(message),
+            });
+          } else if (state.ttsOptions?.ttsProvider === 'elevenlabs') {
+            res = await fetch('/api/natural-speak', {
+              cache: "no-store",
+              method: "POST",
+              //headers: {'Content-Type': 'application/json'},
+              //body: JSON.stringify(message),
+              body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
+            });
           }
-        });
 
-      } catch (error) {
-        // Log and optionally handle errors more explicitly
-        console.error('Error fetching audio:', error);
-      }
+          // Check response validity and log any failures
+          if (!res || !res.ok) {
+            console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
+            return;
+          }
+
+          const blob = await res.blob();
+          stopMicrophone();  // Stop microphone during playback
+
+          // Calculate the latency and play the received TTS audio
+          const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
+          startAudio(blob, "audio/mp3", message.id).then(() => {
+            addAudio({
+              id: message.id,
+              blob,
+              latency,
+              networkLatency: Date.now() - start,
+              model,
+            });
+
+            // Restart the microphone after audio ends if the player exists
+            if (player) {
+              player.onended = () => {
+                setProcessing(false);
+                startMicrophone();
+              };
+            } else {
+              console.error('Player is undefined');
+            }
+          });
+
+        } catch (error) {
+          // Log and optionally handle errors more explicitly
+          console.error('Error fetching audio:', error);
+        }
     },
     // Dependencies for useCallback to ensure the function updates when necessary
     [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player]
@@ -190,15 +190,15 @@ export default function Conversation(): JSX.Element {
     []
   );
 
-  //Anthropic does not accept system messages
-  const userSystemMessage: Message = useMemo(
-    () => ({
-      id: 'AAAA',
-      role: "user",
-      content: systemContent,
-    }),
-    []
-  );
+  // //Anthropic does not accept system messages
+  // const userSystemMessage: Message = useMemo(
+  //   () => ({
+  //     id: 'AAAA',
+  //     role: "user",
+  //     content: systemContent,
+  //   }),
+  //   []
+  // );
 
   const greetingMessage: Message = useMemo(() => {
     // Check if processing is not completed and return a default or null object
@@ -209,7 +209,7 @@ export default function Conversation(): JSX.Element {
       id: generateRandomString(7),
       role: "assistant",
       content: introContent,
-    }
+    };
   }, [introContent, processingPrompt]); 
 
   const promptMessage: Message = useMemo(() => {
@@ -217,12 +217,19 @@ export default function Conversation(): JSX.Element {
     if (processingPrompt) {
       return null; // or return some default state that indicates processing is ongoing
     }
+
+    let promptContent = null;
+    if (state.llm.llmProvider === 'Anthropic'){
+      promptContent = systemContent + ' ' + state.selectedPrompt.text;
+    } else {
+      promptContent = state.selectedPrompt.text;
+    }
     
     // Return the actual prompt message object once processing is complete
     return {
       id: 'AAAB',  
       role: "user",
-      content: state.selectedPrompt.text, // Access text safely assuming state.selectedPrompt is defined
+      content: promptContent, // Access text safely assuming state.selectedPrompt is defined
     };
   }, [state.selectedPrompt, processingPrompt]);
   
@@ -288,7 +295,7 @@ export default function Conversation(): JSX.Element {
     id: "aura",
     api: chatApi,
     body: bodyApi,
-    initialMessages: [userSystemMessage, promptMessage, greetingMessage],
+    initialMessages: [systemMessage, promptMessage, greetingMessage], //anthropic does not work with system messages
     onFinish,
     onResponse,
   });
@@ -416,6 +423,7 @@ export default function Conversation(): JSX.Element {
   }, [greetingMessage, requestTtsAudio]);
 
   const startConversation = useCallback(() => {
+    if (processingPrompt) return
     if (!initialLoad) return;
     setInitialLoad(false);
 

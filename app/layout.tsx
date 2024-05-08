@@ -1,4 +1,4 @@
-import { GoogleTagManager } from "@next/third-parties/google";
+// import { GoogleTagManager } from "@next/third-parties/google";
 import { Inter } from "next/font/google";
 import { NowPlayingContextProvider } from "react-nowplaying";
 import classNames from "classnames";
@@ -63,13 +63,13 @@ export default function RootLayout({
             </AudioStoreContextProvider>
           </MicrophoneContextProvider>
         </ToastContextProvider>
-        <GoogleTagManager gtmId="GTM-5R73N627" />
-        <Script
+        {/* <GoogleTagManager gtmId="GTM-5R73N627" /> */}
+        {/* <Script
           id="github-buttons"
           async
           defer
           src="https://buttons.github.io/buttons.js"
-        ></Script>
+        ></Script> */}
       </body>
     </html>
   );

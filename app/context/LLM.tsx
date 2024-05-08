@@ -45,45 +45,34 @@ export const llmModels: { [key: string]: LLMModelConfig } = {
           maxTokens: 2048,
         }
       },
-      "groq-mixtral-8x7b": {
-        llmProvider: "mixtral",
-        llmModel: "mixtral-8x7b-32768",
-        api: "/api/groq",
-        settings: {
-          temperature: 1.0,
-          maxTokens: 2048,
-        }
-      },
-      "cluade-3-opus-20240229": {
-        llmProvider: "Anthropic",
-        llmModel: "claude-3-opus-20240229",
-        api: "/api/anthropicLlm",
-        settings: {
-          temperature: 1.0,
-          maxTokens: 2048,
-        }
-      },
-      "cluade-3-sonnet-20240229": {
-        llmProvider: "Anthropic",
-        llmModel: "claude-3-sonnet-20240229",
-        api: "/api/anthropicLlm",
-        settings: {
-          temperature: 1.0,
-          maxTokens: 2048,
-        }
-      },
-//       "openai-gpt4": {
-//         llmProvider: "openai",
-//         llmModel: "/devin_clark.svg",
-//       },
-//       "openai-gpt4": {
-//         llmProvider: "openai",
-//         llmModel: "/devin_clark.svg",
-//       },
-//       "openai-gpt4": {
-//         llmProvider: "openai",
-//         llmModel: "/devin_clark.svg",
-//       },
+      // "groq-mixtral-8x7b": {
+      //   llmProvider: "mixtral",
+      //   llmModel: "mixtral-8x7b-32768",
+      //   api: "/api/groq",
+      //   settings: {
+      //     temperature: 1.0,
+      //     maxTokens: 2048,
+      //   }
+      // },
+      // "cluade-3-opus-20240229": {
+      //   llmProvider: "Anthropic",
+      //   llmModel: "claude-3-opus-20240229",
+      //   api: "/api/anthropicLlm",
+      //   settings: {
+      //     temperature: 1.0,
+      //     maxTokens: 2048,
+      //   }
+      // },
+      // "cluade-3-sonnet-20240229": {
+      //   llmProvider: "Anthropic",
+      //   llmModel: "claude-3-sonnet-20240229",
+      //   api: "/api/anthropicLlm",
+      //   settings: {
+      //     temperature: 1.0,
+      //     maxTokens: 2048,
+      //   }
+      // },
+
 };
   
 export const llmModelMap = (model: string) => {
