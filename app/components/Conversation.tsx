@@ -301,7 +301,8 @@ export default function Conversation(): JSX.Element {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>();
+  // const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>(null);
+  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const currentUtteranceRef = useRef<string>();
 
@@ -310,9 +311,11 @@ export default function Conversation(): JSX.Element {
     currentUtteranceRef.current = currentUtterance;
   }, [currentUtterance]);
 
-  const onSpeechEnd = useCallback(() => {
-    if (!microphoneOpen) return;
+  const onVADMisfire = useCallback(() => {
+    console.log('VAD Misfire. Disaster!');
+  }, []);
 
+  const setupFailsafeTimeout = () => {
     const failsafeAction = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
@@ -320,70 +323,47 @@ export default function Conversation(): JSX.Element {
         setFailsafeTriggered(true);
         appendUserMessage(utterance);
         clearTranscriptParts();
-        setCurrentUtterance(undefined); // Consider whether this should also reset the ref
-        currentUtteranceRef.current = undefined; // Ensure the ref is also cleared
+        setCurrentUtterance(undefined);
+        currentUtteranceRef.current = undefined; // Reset the ref
       }
     };
-
-    // Set the failsafe timeout
-    const timeoutId = setTimeout(failsafeAction, 1500);
-    setFailsafeTimeout(timeoutId);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-    // /**
-    //  * We have the audio data context available in VAD
-    //  * even before we start sending it to deepgram.
-    //  * So ignore any VAD events before we "open" the mic.
-    //  */
-    // if (!microphoneOpen) return;
-
-    // setFailsafeTimeout(
-    //   setTimeout(() => {
-    //     if (currentUtterance) {
-    //       console.log("failsafe fires! pew pew!!");
-    //       setFailsafeTriggered(true);
-    //       console.log('speech end1', currentUtterance);
-    //       //appendUserMessage(currentUtterance);
-    //       clearTimeout(failsafeTimeout);
-    //       clearTranscriptParts();
-    //       setCurrentUtterance(undefined);
-    //     }
-    //   }, 2000) //originally 1500
-    // );
-
-    // return () => {
-    //   clearTimeout(failsafeTimeout);
-    // };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [microphoneOpen, currentUtterance]);
-
-  const onSpeechStart = () => {
-    /**
-     * We have the audio data context available in VAD
-     * even before we start sending it to deepgram.
-     * So ignore any VAD events before we "open" the mic.
-     */
-    if (!microphoneOpen) return;
-
-    /**
-     * We we're talking again, we want to wait for a transcript.
-     */
-    setFailsafeTriggered(false);
-
-    if (!player?.ended) {
-      stopAudio();
-      console.log("barging in! SHH!");
+    // Clear any existing timeout before setting a new one
+    if (failsafeTimeoutRef.current) {
+      clearTimeout(failsafeTimeoutRef.current);
     }
+    // Set the new failsafe timeout
+    failsafeTimeoutRef.current = setTimeout(failsafeAction, 1500);
   };
+
+  const onSpeechEnd = useCallback(() => {
+    console.log('speech end');
+    if (!microphoneOpen) return;
+    setupFailsafeTimeout();
+  }, [microphoneOpen, setupFailsafeTimeout]);
+
+  const onSpeechStart = useCallback(() => {
+    if (!microphoneOpen) return;
+  
+    // Clear the failsafe timeout if set
+    if (failsafeTimeoutRef.current) {
+      clearTimeout(failsafeTimeoutRef.current);
+      failsafeTimeoutRef.current = null;
+    }
+  
+    setFailsafeTriggered(false);
+  
+    if (player && !player.ended) {
+      stopAudio();
+      console.log("Barging in! SHH!");
+    }
+  }, [microphoneOpen, player, stopAudio]);
 
   useMicVAD({
     startOnLoad: true,
     stream,
     onSpeechStart,
     onSpeechEnd,
+    onVADMisfire,
     positiveSpeechThreshold: 0.6,
     negativeSpeechThreshold: 0.6 - 0.15,
   });
@@ -454,6 +434,7 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
+    console.log('transcript', content);
 
     if (content !== "" || data.speech_final) {
       addTranscriptPart({
@@ -461,7 +442,6 @@ export default function Conversation(): JSX.Element {
         speech_final: data.speech_final as boolean,
         text: content,
       });
-      // setCurrentUtterance(content); // Update the currentUtterance state here
     }
   }, [addTranscriptPart]);
 
@@ -514,6 +494,7 @@ export default function Conversation(): JSX.Element {
      * display the concatenated utterances
      */
     setCurrentUtterance(content);
+    console.log('setUtterance', content);
 
     /**
      * record the last time we recieved a word
@@ -526,8 +507,12 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
+      console.log('speech final');
       appendUserMessage(content);
-      clearTimeout(failsafeTimeout);
+      if (failsafeTimeoutRef.current) {
+        clearTimeout(failsafeTimeoutRef.current);
+        failsafeTimeoutRef.current = null;
+      }
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
@@ -535,7 +520,7 @@ export default function Conversation(): JSX.Element {
     getCurrentUtterance,
     clearTranscriptParts,
     append,
-    failsafeTimeout,
+    //failsafeTimeout,
     failsafeTriggered,
   ]);
 
