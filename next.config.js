@@ -29,7 +29,9 @@ const wasmPaths = [
 ];
 
 const nextConfig = {
-  ignoreDuringBuilds: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
