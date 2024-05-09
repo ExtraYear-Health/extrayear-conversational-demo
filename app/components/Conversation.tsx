@@ -301,7 +301,6 @@ export default function Conversation(): JSX.Element {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  // const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>(null);
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const currentUtteranceRef = useRef<string>();
@@ -320,7 +319,7 @@ export default function Conversation(): JSX.Element {
     const failsafeAction = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
-        console.log("failsafe fires! pew pew!!", utterance);
+        console.log("failsafe fires! pew pew!!");
         speechStartCheck.current = false;
         setFailsafeTriggered(true);
         appendUserMessage(utterance);
@@ -377,6 +376,7 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
+    //clean string is a hack way to remove extra characters from the LLM response.
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
 
     const latestLlmMessage: MessageMetadata = {
@@ -437,7 +437,6 @@ export default function Conversation(): JSX.Element {
 
     if (content !== "" || data.speech_final) {
       if (!speechStartCheck.current){
-        console.log('failsafe fix');
         setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
       }
       addTranscriptPart({
@@ -483,7 +482,6 @@ export default function Conversation(): JSX.Element {
      * for example, many many many empty transcription responses
      */
     if (!content) {
-      console.log('content empty retun');
       return;
     }
 
