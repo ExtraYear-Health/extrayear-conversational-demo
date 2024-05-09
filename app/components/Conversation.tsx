@@ -301,10 +301,12 @@ export default function Conversation(): JSX.Element {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  // const [failsafeTimeout, setFailsafeTimeout] = useState<NodeJS.Timeout>(null);
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const currentUtteranceRef = useRef<string>();
+  const speechStartCheck = useRef(false);
+  const appendMessageCheck = useRef(false);
+
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -315,43 +317,46 @@ export default function Conversation(): JSX.Element {
     console.log('VAD Misfire. Disaster!');
   }, []);
 
+  // Utility function to clear timeouts
+const clearFailsafeTimeout = () => {
+  if (failsafeTimeoutRef.current) {
+    clearTimeout(failsafeTimeoutRef.current);
+    failsafeTimeoutRef.current = null;
+  }
+};
+
   const setupFailsafeTimeout = () => {
     const failsafeAction = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
-        console.log("failsafe fires! pew pew!!", utterance);
+        console.log("failsafe fires! pew pew!!");
+        speechStartCheck.current = false;
         setFailsafeTriggered(true);
-        appendUserMessage(utterance);
+        appendUserSpeechMessage(utterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
         currentUtteranceRef.current = undefined; // Reset the ref
       }
     };
     // Clear any existing timeout before setting a new one
-    if (failsafeTimeoutRef.current) {
-      clearTimeout(failsafeTimeoutRef.current);
-    }
+    clearFailsafeTimeout();
     // Set the new failsafe timeout
     failsafeTimeoutRef.current = setTimeout(failsafeAction, 1500);
   };
 
   const onSpeechEnd = useCallback(() => {
-    console.log('speech end');
     if (!microphoneOpen) return;
+    speechStartCheck.current = false;
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
-  
+    speechStartCheck.current = true;
+    appendMessageCheck.current = false; 
     // Clear the failsafe timeout if set
-    if (failsafeTimeoutRef.current) {
-      clearTimeout(failsafeTimeoutRef.current);
-      failsafeTimeoutRef.current = null;
-    }
-  
+    clearFailsafeTimeout();
     setFailsafeTriggered(false);
-  
     if (player && !player.ended) {
       stopAudio();
       console.log("Barging in! SHH!");
@@ -377,6 +382,7 @@ export default function Conversation(): JSX.Element {
     if (!state.llmLatency) return;
 
     //Remove extra characters from LLM response.
+    //clean string is a hack way to remove extra characters from the LLM response.
     chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
 
     const latestLlmMessage: MessageMetadata = {
@@ -434,9 +440,11 @@ export default function Conversation(): JSX.Element {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
-    console.log('transcript', content);
 
     if (content !== "" || data.speech_final) {
+      if (!speechStartCheck.current){
+        setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
+      }
       addTranscriptPart({
         is_final: data.is_final as boolean,
         speech_final: data.speech_final as boolean,
@@ -475,11 +483,14 @@ export default function Conversation(): JSX.Element {
       .join(" ")
       .trim();
 
+
     /**
      * if the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
-    if (!content) return;
+    if (!content) {
+      return;
+    }
 
     /**
      * failsafe was triggered since we last sent a message to TTS
@@ -494,7 +505,6 @@ export default function Conversation(): JSX.Element {
      * display the concatenated utterances
      */
     setCurrentUtterance(content);
-    console.log('setUtterance', content);
 
     /**
      * record the last time we recieved a word
@@ -507,12 +517,9 @@ export default function Conversation(): JSX.Element {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      console.log('speech final');
-      appendUserMessage(content);
-      if (failsafeTimeoutRef.current) {
-        clearTimeout(failsafeTimeoutRef.current);
-        failsafeTimeoutRef.current = null;
-      }
+      appendUserSpeechMessage(content);
+      clearFailsafeTimeout();
+      speechStartCheck.current = false;
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
@@ -525,13 +532,23 @@ export default function Conversation(): JSX.Element {
   ]);
 
   // Append user-generated content to the chat.
+  const appendUserSpeechMessage = (inputString) => {
+    if (!appendMessageCheck.current){
+      appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
+      append({
+        role: "user",
+        content: inputString,
+      });
+    }
+  };
+
+  // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
     append({
       role: "user",
       content: inputString,
     });
   };
-
 
   /**
    * magic microphone audio queue processing
