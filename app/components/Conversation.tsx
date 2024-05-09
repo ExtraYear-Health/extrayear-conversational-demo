@@ -33,6 +33,7 @@ import { useAudioStore } from "../context/AudioStore";
 import { useMessageCheck } from "../context/MessageCheck";
 import { LeftBubble } from "./LeftBubble";
 import { llmModels, LLMModelConfig } from "../context/LLM";
+import { Header } from "./conversation/Header";
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -653,6 +654,7 @@ const clearFailsafeTimeout = () => {
         <div className="flex h-full antialiased">
           <div className="flex flex-row h-full w-full overflow-x-hidden">
             <div className="flex flex-col flex-auto h-full">
+              <Header />
               <div className="flex flex-col justify-between h-full">
                 <div
                   className={`flex flex-col h-full overflow-hidden ${
@@ -660,6 +662,7 @@ const clearFailsafeTimeout = () => {
                   }`}
                 >
                   <div className="grid grid-cols-12 overflow-x-auto gap-y-2">
+
                   {initialLoad ? (
                     <InitialLoad
                       fn={startConversation}
