@@ -22,12 +22,13 @@ const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetS
   return (
     <Select
       value={llmModel}
+      selectedKeys={[llmModel]}
       onChange={(e) => setLLMModel(e.target.value)}
       label="Select LLM Model"
       variant="bordered"
     >
       {llmModelOptions.map((option) => (
-        <SelectItem key={option.key} value={option.key} textValue={option.label}>
+        <SelectItem key={option.key} value={option.key} >
           {option.label}
         </SelectItem>
       ))}
@@ -50,6 +51,7 @@ const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSe
   return (
     <Select
       value={selectedPrompt}
+      selectedKeys={[selectedPrompt]}
       onChange={(e) => setSelectedPrompt(e.target.value)}
       label="Select a Conversation"
       variant="bordered"
@@ -64,7 +66,7 @@ const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSe
 };
 
 export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: boolean }) => {
-  const { state, dispatch } = useContext(DeepgramContext);
+  const { state, dispatch } = useDeepgram();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const initialLLMModel = state.llm?.llmModel || 'openai-gpt4-turbo';
   const { toast } = useToast();
@@ -110,26 +112,29 @@ export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: bo
           <div className="flex justify-center mt-4">
             <p className="text-center">Conversations for Cognitive Health</p>
           </div>
-          <button
-            disabled={connecting}
-            onClick={handleButtonClick}
-            type="button"
-            className="my-4 block w-full sm:w-auto font-semibold bg-white text-black rounded px-10 py-3 font-semibold sm:w-fit sm:mx-auto opacity-90"
-          >
-            {connecting ? (
-              <div className="w-auto h-full items-center flex justify-center opacity-40 cursor-not-allowed">
-                <Spinner size={"sm"} className="-mt-1 mr-2" />
-                Connecting...
-              </div>
-            ) : (
-              <>{isBrowser ? "Click" : "Tap"} here to start</>
-            )}
-          </button>
-          <div className="my-2.5">
-            <LLMModelSelection llmModel={llmModel} setLLMModel={setLLMModel} />
-          </div>
-          <div className="my-2.5">
-            <PromptSelection selectedPrompt={selectedPrompt} setSelectedPrompt={setSelectedPrompt} />
+          <div className="mt-6">
+            <div className="my-2.5">
+              <LLMModelSelection llmModel={llmModel} setLLMModel={setLLMModel} />
+            </div>
+            <div className="my-2.5">
+              <PromptSelection selectedPrompt={selectedPrompt} setSelectedPrompt={setSelectedPrompt} />
+            </div>
+
+            <button
+              disabled={connecting}
+              onClick={handleButtonClick}
+              type="button"
+              className="my-4 block w-full sm:w-auto font-semibold bg-white text-black rounded px-10 py-3 font-semibold sm:w-fit sm:mx-auto opacity-90"
+            >
+              {connecting ? (
+                <div className="w-auto h-full items-center flex justify-center opacity-40 cursor-not-allowed">
+                  <Spinner size={"sm"} className="-mt-1 mr-2" />
+                  Connecting...
+                </div>
+              ) : (
+                <>{isBrowser ? "Click" : "Tap"} here to start</>
+              )}
+            </button>
           </div>
         </div>
       </div>
