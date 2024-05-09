@@ -1,3 +1,17 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@stylistic/recommended-extends"
+  ],
+  "plugins": [
+    "@stylistic/eslint-plugin"
+  ],
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-trailing-spaces": "error",
+    "@stylistic/indent": ["error", 2],
+    "@stylistic/arrow-parens": ["off"],
+    "@stylistic/semi": ["error", "always"],
+    "@stylistic/operator-linebreak": ["error", "after"]
+  }
 }
