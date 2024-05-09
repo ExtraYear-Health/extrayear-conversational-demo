@@ -6,6 +6,8 @@ import { checkMessagePromptContent } from "../prompts/checkMessage";
 import { londonMarathonArticleConversation } from "../prompts/londonMarathonArticleConversation";
 import { cityGuessTen } from "../prompts/cityGuessTen";
 import { icebreakerFriends } from "../prompts/icebreakerFriends";
+import { chooseAdverntureMysteryInLocation } from "../prompts/chooseAdverntureMysteryInLocation";
+import { storyCubes01 } from "../prompts/storyCubes01";
 
 export interface PromptConfig {
   id: string;
@@ -34,6 +36,18 @@ export const promptData: { [key: string]: PromptConfig } = {
     title: "A conversation about friends and family",
     description: "A conversational guessing game about cities",
     text: icebreakerFriends,
+  },
+  "chooseAdverntureMysteryInLocation": {
+    id: "chooseAdverntureMysteryInLocation",
+    title: "Conversational mystery novel",
+    description: "A choose-your-own-adventure type mystery novel",
+    text: chooseAdverntureMysteryInLocation,
+  },
+  "storyCubes01": {
+    id: "storyCubes01",
+    title: "A creative short story game",
+    description: "Create short stories from a random list of items",
+    text: storyCubes01,
   },
   // Additional prompts can be added here
 };
