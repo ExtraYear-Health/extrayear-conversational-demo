@@ -12,6 +12,17 @@
     "@stylistic/indent": ["error", 2],
     "@stylistic/arrow-parens": ["off"],
     "@stylistic/semi": ["error", "always"],
-    "@stylistic/operator-linebreak": ["error", "after"]
+    "@stylistic/operator-linebreak": ["error", "after"],
+    "@stylistic/member-delimiter-style": ["error", {
+      "multiline": {
+        "delimiter": "semi",
+        "requireLast": true
+      },
+      "singleline": {
+        "delimiter": "semi",
+        "requireLast": true
+      },
+      "multilineDetection": "brackets"
+    }]
   }
 }
