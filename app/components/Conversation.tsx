@@ -320,16 +320,13 @@ export default function Conversation(): JSX.Element {
   // Utility function to clear timeouts
 const clearFailsafeTimeout = () => {
   if (failsafeTimeoutRef.current) {
-    console.log('timeout cleared');
     clearTimeout(failsafeTimeoutRef.current);
     failsafeTimeoutRef.current = null;
   }
 };
 
   const setupFailsafeTimeout = () => {
-    console.log('timeout called');
     const failsafeAction = () => {
-      console.log('timeout fires');
       const utterance = currentUtteranceRef.current;
       if (utterance) {
         console.log("failsafe fires! pew pew!!");
@@ -349,14 +346,12 @@ const clearFailsafeTimeout = () => {
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
-    console.log('speech end');
     speechStartCheck.current = false;
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
-    console.log('speech start');
     speechStartCheck.current = true;
     appendMessageCheck.current = false; 
     // Clear the failsafe timeout if set
@@ -445,11 +440,9 @@ const clearFailsafeTimeout = () => {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
-    console.log('transcript', content);
 
     if (content !== "" || data.speech_final) {
       if (!speechStartCheck.current){
-        console.log('failsafe backup fix');
         setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
       }
       addTranscriptPart({
@@ -462,15 +455,12 @@ const clearFailsafeTimeout = () => {
 
   useEffect(() => {
     const onOpen = () => {
-      console.log('transcript events onopen.');
       state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
     };
 
     if (state.connection) {// && state.connectionReady
-      console.log('transcript events onopen added.');
       state.connection.addListener(LiveTranscriptionEvents.Open, onOpen);
       return () => {
-        console.log('cleanup transcription events');
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
         state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
       };
@@ -493,14 +483,12 @@ const clearFailsafeTimeout = () => {
       .join(" ")
       .trim();
 
-    console.log('content', content);
 
     /**
      * if the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
     if (!content) {
-      console.log('no content');
       return;
     }
 
@@ -508,7 +496,6 @@ const clearFailsafeTimeout = () => {
      * failsafe was triggered since we last sent a message to TTS
      */
     if (failsafeTriggered) {
-      console.log('fail safe triggered use effect');
       clearTranscriptParts();
       setCurrentUtterance(undefined);
       return;
@@ -518,7 +505,6 @@ const clearFailsafeTimeout = () => {
      * display the concatenated utterances
      */
     setCurrentUtterance(content);
-    console.log('set utterance', content);
 
     /**
      * record the last time we recieved a word
@@ -531,7 +517,6 @@ const clearFailsafeTimeout = () => {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
-      console.log('speech final');
       appendUserSpeechMessage(content);
       clearFailsafeTimeout();
       speechStartCheck.current = false;
@@ -548,7 +533,6 @@ const clearFailsafeTimeout = () => {
 
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = (inputString) => {
-    console.log('append speech message');
     if (!appendMessageCheck.current){
       appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
       append({
@@ -560,7 +544,6 @@ const clearFailsafeTimeout = () => {
 
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
-    console.log('append message');
     append({
       role: "user",
       content: inputString,
