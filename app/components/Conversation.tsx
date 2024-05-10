@@ -152,6 +152,7 @@ export default function Conversation(): JSX.Element {
             if (player) {
               player.onended = () => {
                 // setProcessing(false);
+                clearTranscriptParts();
                 startMicrophone();
               };
             } else {
