@@ -2,8 +2,9 @@ import { DeepgramError, createClient } from "@deepgram/sdk";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  //exit early so we don't request 70000000 keys while in devmode
-  if (process.env.DEEPGRAM_ENV === "development") {
+  const isLocalDev = process.env.NODE_ENV === "development" || process.env.DEEPGRAM_ENV === "development";
+  // exit early so we don't request 70000000 keys while in devmode
+  if (isLocalDev) {
     return NextResponse.json({
       key: process.env.DEEPGRAM_API_KEY ?? "",
     });
