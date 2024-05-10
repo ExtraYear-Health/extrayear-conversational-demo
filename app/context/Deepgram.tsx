@@ -219,8 +219,10 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   //Set initial values for TTS, STT, and LLM
   useEffect(() => {
     if (!state.ttsOptions) {
-      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
+      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
       // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
+      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "ava-en" } }); //azure TTS
+
     }
     if (!state.sttOptions) {
       dispatch({ type: 'SET_STT_OPTIONS', payload: {
@@ -236,10 +238,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       console.log('set llm');
       dispatch({ type: 'SET_LLM', payload: "groq-llama3-8b"});
     }
-    // if (!state.selectedPrompt){
-    //   console.log('set prompt');
-    //   dispatch({ type: 'SET_PROMPT', payload: "cityGuess10"});
-    // }
   }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPrompt]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (

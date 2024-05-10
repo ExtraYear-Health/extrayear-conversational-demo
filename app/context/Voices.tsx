@@ -449,14 +449,223 @@ export const voices: {
         ttsProvider: "elevenlabs",
         voiceId: "GBv7mTt0atIp3Br8iCZE"
     },
-    "santa-claus": {
-        name: "🎅 Santa Claus",
-        avatar: "/ryan-hiles.svg",
-        language: "English",
-        accent: "",
-        ttsProvider: "elevenlabs",
-        voiceId: "knrPHWnBmmDHMoiMeP3l"
-    },
+    "ava-en": {
+      name: "Ava",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AvaMultilingualNeural"
+  },
+  "andrew-en": {
+      name: "Andrew",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AndrewMultilingualNeural"
+  },
+  "emma-en": {
+      name: "Emma",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-EmmaMultilingualNeural"
+  },
+  "brian-en": {
+      name: "Brian",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-BrianMultilingualNeural"
+  },
+  "jenny-en": {
+      name: "Jenny",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-JennyNeural"
+  },
+  "guy-en": {
+      name: "Guy",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-GuyNeural"
+  },
+  "aria-en": {
+      name: "Aria",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AriaNeural"
+  },
+  "davis-en": {
+      name: "Davis",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-DavisNeural"
+  },
+  "jane-en": {
+      name: "Jane",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-JaneNeural"
+  },
+  "jason-en": {
+      name: "Jason",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-JasonNeural"
+  },
+  "sara-en": {
+      name: "Sara",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-SaraNeural"
+  },
+  "tony-en": {
+      name: "Tony",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-TonyNeural"
+  },
+  "nancy-en": {
+      name: "Nancy",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-NancyNeural"
+  },
+  "amber-en": {
+      name: "Amber",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AmberNeural"
+  },
+  "ana-en": {
+      name: "Ana",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AnaNeural"
+  },
+  "ashley-en": {
+      name: "Ashley",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-AshleyNeural"
+  },
+  "brandon-en": {
+      name: "Brandon",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-BrandonNeural"
+  },
+  "christopher-en": {
+      name: "Christopher",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-ChristopherNeural"
+  },
+  "cora-en": {
+      name: "Cora",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-CoraNeural"
+  },
+  "elizabeth-en": {
+      name: "Elizabeth",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-ElizabethNeural"
+  },
+  "eric-en": {
+      name: "Eric",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-EricNeural"
+  },
+  "jacob-en": {
+      name: "Jacob",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-JacobNeural"
+  },
+  "michelle-en": {
+      name: "Michelle",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-MichelleNeural"
+  },
+  "monica-en": {
+      name: "Monica",
+      avatar: "/devin_clark.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-MonicaNeural"
+  },
+  "roger-en": {
+      name: "Roger",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-RogerNeural"
+  },
+  "ryan-en": {
+      name: "Ryan",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-RyanMultilingualNeural"
+  },
+  "steffan-en": {
+      name: "Steffan",
+      avatar: "/ryan-hiles.svg",
+      language: "English",
+      accent: "US",
+      ttsProvider: "azure",
+      voiceId: "en-US-SteffanNeural"
+  },
+    
   };
 
 //https://elevenlabs.io/docs/voices/premade-voices
