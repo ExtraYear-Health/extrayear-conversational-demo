@@ -473,7 +473,7 @@ export const voices: {
       ttsProvider: "azure",
       voiceId: "en-US-EmmaMultilingualNeural"
   },
-  "brian-en": {
+  "brian-en-azure": {
       name: "Brian",
       avatar: "/ryan-hiles.svg",
       language: "English",
