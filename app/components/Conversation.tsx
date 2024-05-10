@@ -130,7 +130,12 @@ export default function Conversation(): JSX.Element {
           }
 
           const blob = await res.blob();
-          stopMicrophone();  // Stop microphone during playback
+          stopMicrophone();
+          
+          // if (microphoneOpen){
+          //   console.log('stop mic for tts');
+          //   stopMicrophone();  // Stop microphone during playback
+          // }
 
           // Calculate the latency and play the received TTS audio
           const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
@@ -146,7 +151,7 @@ export default function Conversation(): JSX.Element {
             // Restart the microphone after audio ends if the player exists
             if (player) {
               player.onended = () => {
-                setProcessing(false);
+                // setProcessing(false);
                 startMicrophone();
               };
             } else {
@@ -375,8 +380,6 @@ const clearFailsafeTimeout = () => {
 
   useEffect(() => {
     if (llmLoading) {
-      //don't listen for voice input while LLM response is generating and displaying
-      stopMicrophone();
       return;
     };
     if (!state.llmLatency) return;
@@ -534,6 +537,7 @@ const clearFailsafeTimeout = () => {
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = (inputString) => {
     if (!appendMessageCheck.current){
+      stopMicrophone(); //microphone starts again after TTS plays
       appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
       append({
         role: "user",
