@@ -20,6 +20,7 @@
     "@stylistic/arrow-parens": ["off"],
     "@stylistic/semi": ["error", "always"],
     "@stylistic/operator-linebreak": ["error", "after"],
+    "@stylistic/multiline-ternary": ["off"],
     "@stylistic/member-delimiter-style": ["error", {
       "multiline": {
         "delimiter": "semi",
@@ -30,6 +31,8 @@
         "requireLast": true
       },
       "multilineDetection": "brackets"
-    }]
+    }],
+    "@stylistic/jsx-one-expression-per-line": ["off"],
+    "@stylistic/brace-style": ["off"]
   }
 }
