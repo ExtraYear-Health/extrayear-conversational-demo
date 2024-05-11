@@ -310,9 +310,9 @@ export default function Conversation(): JSX.Element {
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const currentUtteranceRef = useRef<string>();
-  const speechStartCheck = useRef(false);
-  const appendMessageCheck = useRef(false);
-
+  const speechStartCheck = useRef<boolean>(false);
+  const appendMessageCheck = useRef<boolean>(false);
+  const eventListenerAdded = useRef<boolean>(false); //used to protect against multiple event listeners being added
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -459,25 +459,45 @@ const clearFailsafeTimeout = () => {
 
   useEffect(() => {
     const onOpen = () => {
-      state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
+      if (state.connectionReady && !eventListenerAdded.current) {
+        state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
+        eventListenerAdded.current = true;
+      }
     };
-
-    if (state.connection) {// && state.connectionReady
+  
+    if (state.connection) {
       state.connection.addListener(LiveTranscriptionEvents.Open, onOpen);
       return () => {
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
-        state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+        if (state.connectionReady && eventListenerAdded.current) {
+          state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+          eventListenerAdded.current = false;
+        }
       };
     }
-  }, [state.connection, onTranscript]);
+  }, [state.connection, state.connectionReady, onTranscript]);
+  
 
   const getCurrentUtterance = useCallback(() => {
-    return transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
+    const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
       return is_final || speech_final || (!is_final && i === arr.length - 1);
     });
+    return filteredParts;        // Return the result as before
   }, [transcriptParts]);
 
   const [lastUtterance, setLastUtterance] = useState<number>();
+
+  // Append user-generated content to the chat.
+  const appendUserSpeechMessage = (inputString) => {
+    if (!appendMessageCheck.current){
+      stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
+      appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
+      append({
+        role: "user",
+        content: inputString,
+      });
+    }
+  };
 
   useEffect(() => {
     const parts = getCurrentUtterance();
@@ -530,22 +550,8 @@ const clearFailsafeTimeout = () => {
   }, [
     getCurrentUtterance,
     clearTranscriptParts,
-    append,
-    //failsafeTimeout,
     failsafeTriggered,
   ]);
-
-  // Append user-generated content to the chat.
-  const appendUserSpeechMessage = (inputString) => {
-    if (!appendMessageCheck.current){
-      stopMicrophone(); //microphone starts again after TTS plays
-      appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
-      append({
-        role: "user",
-        content: inputString,
-      });
-    }
-  };
 
   // Append user-generated content to the chat.
   const appendUserMessage = (inputString) => {
