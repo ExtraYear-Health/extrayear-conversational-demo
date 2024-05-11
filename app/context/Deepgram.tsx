@@ -222,7 +222,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
       // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
       dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "ava-en" } }); //azure TTS
-
     }
     if (!state.sttOptions) {
       dispatch({ type: 'SET_STT_OPTIONS', payload: {
