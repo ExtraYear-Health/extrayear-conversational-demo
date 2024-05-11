@@ -117,8 +117,12 @@ export default function Conversation(): JSX.Element {
             res = await fetch('/api/natural-speak', {
               cache: "no-store",
               method: "POST",
-              //headers: {'Content-Type': 'application/json'},
-              //body: JSON.stringify(message),
+              body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
+            });
+          } else if (state.ttsOptions?.ttsProvider === 'azure') {
+            res = await fetch('/api/azureSpeak', {
+              cache: "no-store",
+              method: "POST",
               body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
             });
           }
@@ -131,11 +135,6 @@ export default function Conversation(): JSX.Element {
 
           const blob = await res.blob();
           stopMicrophone();
-          
-          // if (microphoneOpen){
-          //   console.log('stop mic for tts');
-          //   stopMicrophone();  // Stop microphone during playback
-          // }
 
           // Calculate the latency and play the received TTS audio
           const latency = Number(res.headers.get("X-DG-Latency")) ?? Date.now() - start;
