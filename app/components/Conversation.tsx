@@ -154,6 +154,7 @@ export default function Conversation() {
           if (player) {
             player.onended = () => {
               activeAssistantResponse.current = false;
+              clearTranscriptParts();
               startMicrophone();
             };
           } else {
@@ -442,6 +443,7 @@ export default function Conversation() {
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
+    // console.log('transcript', content); //debug
 
     if (content !== '' || data.speech_final) {
       addTranscriptPart({
@@ -476,6 +478,7 @@ export default function Conversation() {
     const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
       return is_final || speech_final || (!is_final && i === arr.length - 1);
     });
+    // console.log('filter parts', filteredParts); //debug
     return filteredParts; // Return the result as before
   }, [transcriptParts]);
 
