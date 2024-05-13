@@ -12,7 +12,7 @@ export function Header({
   job,
 }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-default-100/50 z-50 backdrop-blur-md h-[64px] fixed top-0 left-0 right-0">
+    <header className="flex items-center justify-between px-4 py-3 bg-default-100/50 z-50 backdrop-blur-md h-[64px]">
       <div className="flex items-center gap-3">
         <Avatar src={avatarImage} />
         <div>

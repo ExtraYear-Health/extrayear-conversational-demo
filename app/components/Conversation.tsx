@@ -661,16 +661,16 @@ export default function Conversation() {
   return (
     <>
       <NextUIProvider className="h-full">
-        {/* TODO: make it dynamic in a separate PR */}
-        <Header
-          avatarImage="/devin_clark.svg"
-          name="Devin Clark"
-          job="Cognitive Therapist"
-        />
-        <div className="h-full w-full antialiased">
+        <div className="h-full w-full antialiased max-w-7xl mx-auto">
           <div className="flex flex-col h-full w-full">
+            {/* TODO: make it dynamic in a separate PR */}
+            <Header
+              avatarImage="/devin_clark.svg"
+              name="Devin Clark"
+              job="Cognitive Therapist"
+            />
             <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-y-auto pt-[64px]">
+              <div className="h-full overflow-y-auto">
                 <div className="min-h-full flex flex-col justify-end">
                   <div className="grid grid-cols-12">
 

@@ -1,8 +1,8 @@
 import { Message } from 'ai/react';
+import moment from 'moment';
+
 import { useMessageData } from '../context/MessageMetadata';
 import { useAudioStore } from '../context/AudioStore';
-
-import moment from 'moment';
 
 const MessageHeader = ({
   message,
