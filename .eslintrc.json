@@ -1,12 +1,19 @@
 {
   "extends": [
     "next/core-web-vitals",
-    "plugin:@stylistic/recommended-extends"
+    "plugin:@stylistic/recommended-extends",
+    "plugin:import/recommended",
+    "plugin:import/typescript"
   ],
   "plugins": [
-    "@stylistic/eslint-plugin"
+    "@stylistic/eslint-plugin",
+    "import"
   ],
   "rules": {
+    "import/order": ["error", {
+      "newlines-between": "always",
+      "distinctGroup": false
+    }],
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "no-trailing-spaces": "error",
     "@stylistic/indent": ["error", 2],
