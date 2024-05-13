@@ -150,7 +150,6 @@ export default function Conversation(): JSX.Element {
             // Restart the microphone after audio ends if the player exists
             if (player) {
               player.onended = () => {
-                // setProcessing(false);
                 clearTranscriptParts();
                 startMicrophone();
               };
@@ -306,12 +305,12 @@ export default function Conversation(): JSX.Element {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
+  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUtteranceRef = useRef<string>();
   const speechStartCheck = useRef<boolean>(false);
-  const appendMessageCheck = useRef<boolean>(false);
   const eventListenerAdded = useRef<boolean>(false); //used to protect against multiple event listeners being added
+  const activeUserResponse = useRef<boolean>(false);
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -357,8 +356,8 @@ const clearFailsafeTimeout = () => {
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
+    activeUserResponse.current = true;
     speechStartCheck.current = true;
-    appendMessageCheck.current = false; 
     // Clear the failsafe timeout if set
     clearFailsafeTimeout();
     setFailsafeTriggered(false);
@@ -480,17 +479,19 @@ const clearFailsafeTimeout = () => {
   const getCurrentUtterance = useCallback(() => {
     const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
       return is_final || speech_final || (!is_final && i === arr.length - 1);
+
     });
     return filteredParts;        // Return the result as before
   }, [transcriptParts]);
 
   const [lastUtterance, setLastUtterance] = useState<number>();
+  const lastContentRef = useRef<string>(null);
 
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = (inputString) => {
-    if (!appendMessageCheck.current){
+    if (activeUserResponse.current){
       stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
-      appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
+      activeUserResponse.current = false; //this flag prevents another message being appended until onSpeechStart runs again.
       append({
         role: "user",
         content: inputString,
@@ -506,7 +507,6 @@ const clearFailsafeTimeout = () => {
       .join(" ")
       .trim();
 
-
     /**
      * if the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
@@ -514,6 +514,20 @@ const clearFailsafeTimeout = () => {
     if (!content) {
       return;
     }
+
+    /**
+   * onTranscipt can occasionally get the same content several times. 
+   * This check guards against that scenario.
+   */
+    // if (content === lastContentRef.current){
+    //   if (!speechStartCheck.current){
+    if (!activeUserResponse.current){
+      console.log('user response has not started');
+      clearTranscriptParts();
+      return;
+    }
+    // }
+    // lastContentRef.current = content;
 
     /**
      * failsafe was triggered since we last sent a message to TTS
