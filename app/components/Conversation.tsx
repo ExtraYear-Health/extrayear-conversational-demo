@@ -667,7 +667,6 @@ export default function Conversation() {
   return (
     <div className="h-full w-full antialiased max-w-7xl mx-auto">
       <div className="flex flex-col h-full w-full">
-        {/* TODO: make it dynamic in a separate PR */}
         <Header
           avatarImage={assistant.avatar}
           name={assistant.name}
