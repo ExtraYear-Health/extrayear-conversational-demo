@@ -12,6 +12,7 @@ import { useMicVAD } from '@ricky0123/vad-react';
 import { useNowPlaying } from 'react-nowplaying';
 import { useQueue } from '@uidotdev/usehooks';
 import { useState, useEffect, useCallback, useRef, useMemo, useContext } from 'react';
+import Mustache from 'mustache';
 
 import {
   contextualGreeting,
@@ -22,7 +23,7 @@ import {
 } from '../lib/helpers';
 import { MessageMetadata } from '../lib/types';
 import { systemContent } from '../lib/constants';
-import { useDeepgram } from '../context/Deepgram';
+import { useDeepgram, voiceMap } from '../context/Deepgram';
 import { useMessageData } from '../context/MessageMetadata';
 import { useMicrophone } from '../context/Microphone';
 import { useAudioStore } from '../context/AudioStore';
@@ -31,10 +32,10 @@ import { llmModels, LLMModelConfig } from '../context/LLM';
 
 import { LeftBubble } from './LeftBubble';
 import { RightBubble } from './RightBubble';
-import { InitialLoad } from './InitialLoad';
 import { Controls } from './Controls';
 import { ChatBubble } from './ChatBubble';
 import { Header } from './conversation/Header';
+import { InitialLoad } from './InitialLoad';
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -76,9 +77,11 @@ export default function Conversation() {
   /**
    * State
    */
-  const [initialLoad, setInitialLoad] = useState(true);
   const [isProcessing, setProcessing] = useState(false);
   const [processingPrompt, setProcessingPrompt] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  const assistant = voiceMap(state.ttsOptions.model);
 
   // Use this effect to process and initialize prompt content.
   useEffect(() => {
@@ -215,9 +218,11 @@ export default function Conversation() {
     return {
       id: generateRandomString(7),
       role: 'assistant',
-      content: introContent,
+      content: Mustache.render(introContent, {
+        assistant_name: assistant.name,
+      }),
     };
-  }, [introContent, processingPrompt]);
+  }, [assistant.name, introContent, processingPrompt]);
 
   const promptMessage: Message = useMemo(() => {
     // Check if processing is not completed and return a default or null object
@@ -650,61 +655,55 @@ export default function Conversation() {
 
   if (initialLoad) {
     return (
-      <NextUIProvider className="h-full">
-        <div className="h-full w-full flex justify-center items-center">
-          <InitialLoad
-            fn={startConversation}
-            connecting={state.connectionReady === false}
-          />
-        </div>
-      </NextUIProvider>
+      <div className="h-full w-full flex justify-center items-center">
+        <InitialLoad
+          onSubmit={startConversation}
+          connecting={state.connectionReady === false}
+        />
+      </div>
     );
   }
 
   return (
-    <>
-      <NextUIProvider className="h-full">
-        <div className="h-full w-full antialiased max-w-7xl mx-auto">
-          <div className="flex flex-col h-full w-full">
-            {/* TODO: make it dynamic in a separate PR */}
-            <Header
-              avatarImage="/devin_clark.svg"
-              name="Devin Clark"
-              job="Cognitive Therapist"
-            />
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-y-auto">
-                <div className="min-h-full flex flex-col justify-end">
-                  <div className="grid grid-cols-12">
+    <div className="h-full w-full antialiased max-w-7xl mx-auto">
+      <div className="flex flex-col h-full w-full">
+        {/* TODO: make it dynamic in a separate PR */}
+        <Header
+          avatarImage={assistant.avatar}
+          name={assistant.name}
+          job="Cognitive Therapist"
+        />
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="min-h-full flex flex-col justify-end">
+              <div className="grid grid-cols-12">
 
-                    {!processingPrompt && chatMessages?.map((message, i) => {
-                      if (message.id === 'AAAA' || message.id === 'AAAB') {
-                        return null;
-                      }
-                      return <ChatBubble message={message} key={i} />;
-                    })}
+                {!processingPrompt && chatMessages?.map((message, i) => {
+                  if (message.id === 'AAAA' || message.id === 'AAAB') {
+                    return null;
+                  }
+                  return <ChatBubble message={message} key={i} />;
+                })}
 
-                    {currentUtterance && (
-                      <RightBubble text={currentUtterance}></RightBubble>
-                    )}
+                {currentUtterance && (
+                  <RightBubble text={currentUtterance}></RightBubble>
+                )}
 
-                    <div
-                      className="h-16 col-start-1 col-end-13 responsive-hide"
-                      ref={messageMarker}
-                    />
-                  </div>
-                </div>
+                <div
+                  className="h-16 col-start-1 col-end-13 responsive-hide"
+                  ref={messageMarker}
+                />
               </div>
             </div>
-            <Controls
-              messages={chatMessages}
-              handleSubmit={handleSubmit}
-              handleInputChange={handleInputChange}
-              input={input}
-            />
           </div>
         </div>
-      </NextUIProvider>
-    </>
+        <Controls
+          messages={chatMessages}
+          handleSubmit={handleSubmit}
+          handleInputChange={handleInputChange}
+          input={input}
+        />
+      </div>
+    </div>
   );
 }
