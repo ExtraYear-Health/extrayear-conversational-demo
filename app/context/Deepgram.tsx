@@ -235,7 +235,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     }
     if (!state.llm){
       console.log('set llm');
-      dispatch({ type: 'SET_LLM', payload: "'openai-gpt4o"});
+      dispatch({ type: 'SET_LLM', payload: "openai-gpt4o"});
     }
   }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPrompt]);//[connect, state.connection, state.sttOptions, state.ttsOptions]);
 
