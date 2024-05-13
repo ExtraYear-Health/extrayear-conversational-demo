@@ -8,6 +8,7 @@ import { cityGuessTen } from "../prompts/cityGuessTen";
 import { icebreakerFriends } from "../prompts/icebreakerFriends";
 import { chooseAdverntureMysteryInLocation } from "../prompts/chooseAdverntureMysteryInLocation";
 import { storyCubes01 } from "../prompts/storyCubes01";
+import { movieConversation } from "../prompts/movieConversation";
 
 export interface PromptConfig {
   id: string;
@@ -48,6 +49,12 @@ export const promptData: { [key: string]: PromptConfig } = {
     title: "A creative short story game",
     description: "Create short stories from a random list of items",
     text: storyCubes01,
+  },
+  "movieConversation": {
+    id: "movieConversation",
+    title: "A conversational movie trivia game",
+    description: "Guess and discuss movies from your youth",
+    text: movieConversation,
   },
   // Additional prompts can be added here
 };
