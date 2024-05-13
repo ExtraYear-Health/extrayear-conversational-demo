@@ -488,7 +488,6 @@ const clearFailsafeTimeout = () => {
   const appendUserSpeechMessage = (inputString) => {
     if (activeUserResponse.current){
       console.log('append user message');
-      speechStartCheck.current = false;
       stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
       activeAssistantResponse.current = true; //appending the user message automatically starts the LLM response.
       activeUserResponse.current = false; //this flag prevents another message being appended until onSpeechStart runs again.
