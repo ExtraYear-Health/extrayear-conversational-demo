@@ -2,16 +2,17 @@ import { Message } from 'ai/react';
 import { Tooltip } from '@nextui-org/react';
 import { useCallback, useEffect } from 'react';
 import { useNowPlaying } from 'react-nowplaying';
+import TextareaAutosize from 'react-textarea-autosize';
+
+import { useMicrophone } from '../context/Microphone';
+import { useSubmit } from '../lib/hooks/useSubmit';
 
 import { Download } from './Download';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { SendIcon } from './icons/SendIcon';
 import { Settings } from './Settings';
-import { useMicrophone } from '../context/Microphone';
-import { useSubmit } from '../lib/hooks/useSubmit';
 
 // Better to use library, a lot of complexity is involved in building the resizable input
-import TextareaAutosize from 'react-textarea-autosize';
 
 export const Controls = ({
   input,
@@ -43,7 +44,7 @@ export const Controls = ({
         startMicrophone();
       }
     },
-    [microphoneOpen, startMicrophone, stopMicrophone]
+    [microphoneOpen, startMicrophone, stopMicrophone],
   );
 
   const { stop: stopAudio } = useNowPlaying();
@@ -57,7 +58,7 @@ export const Controls = ({
       handleInputChange(e);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [stopAudio, handleSubmit]
+    [stopAudio, handleSubmit],
   );
 
   return (

@@ -1,9 +1,11 @@
 import { Message } from 'ai/react';
-import { useAudioStore } from '../context/AudioStore';
 import { useState } from 'react';
-import { CaretIcon } from './icons/CaretIcon';
 import { Tooltip } from '@nextui-org/react';
+
+import { useAudioStore } from '../context/AudioStore';
 import { useMessageData } from '../context/MessageMetadata';
+
+import { CaretIcon } from './icons/CaretIcon';
 import { BoltIcon } from './icons/BoltIcon';
 
 const TTFB = () => (
