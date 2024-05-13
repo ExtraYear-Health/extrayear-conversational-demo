@@ -172,7 +172,7 @@ export default function Conversation(): JSX.Element {
   //An optional callback that will be called when the chat stream ends
   const onFinish = useCallback(
     (msg: any) => {
-      msg.content = cleanString(msg.content); //remove excess characters before TTS.
+      msg.content = cleanString(msg.content); //hack way to remove excess characters before TTS.
       requestTtsAudio(msg);
     },
     [requestTtsAudio]
@@ -310,7 +310,6 @@ export default function Conversation(): JSX.Element {
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUtteranceRef = useRef<string>();
-  const speechStartCheck = useRef<boolean>(false);
   const eventListenerAdded = useRef<boolean>(false); //used to protect against multiple event listeners being added
   
   // Update the ref whenever currentUtterance changes
@@ -325,8 +324,10 @@ export default function Conversation(): JSX.Element {
   // Utility function to clear timeouts
 const clearFailsafeTimeout = () => {
   if (failsafeTimeoutRef.current) {
+    //console.log('timeout cleared'); //debug
     clearTimeout(failsafeTimeoutRef.current);
     failsafeTimeoutRef.current = null;
+    setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
   }
 };
 
@@ -335,7 +336,6 @@ const clearFailsafeTimeout = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
         console.log("failsafe fires! pew pew!!");
-        speechStartCheck.current = false;
         setFailsafeTriggered(true);
         appendUserSpeechMessage(utterance);
         clearTranscriptParts();
@@ -351,15 +351,14 @@ const clearFailsafeTimeout = () => {
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
-    speechStartCheck.current = false;
+    // console.log('speech end'); //debug
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
+    // console.log('speech start'); //debug
     activeUserResponse.current = true;
-    speechStartCheck.current = true;
-    // Clear the failsafe timeout if set
     clearFailsafeTimeout();
     setFailsafeTriggered(false);
     if (player && !player.ended) {
@@ -445,9 +444,6 @@ const clearFailsafeTimeout = () => {
     let content = utteranceText(data);
 
     if (content !== "" || data.speech_final) {
-      if (!speechStartCheck.current){
-        setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
-      }
       addTranscriptPart({
         is_final: data.is_final as boolean,
         speech_final: data.speech_final as boolean,
@@ -491,6 +487,8 @@ const clearFailsafeTimeout = () => {
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = (inputString) => {
     if (activeUserResponse.current){
+      console.log('append user message');
+      speechStartCheck.current = false;
       stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
       activeAssistantResponse.current = true; //appending the user message automatically starts the LLM response.
       activeUserResponse.current = false; //this flag prevents another message being appended until onSpeechStart runs again.
@@ -523,17 +521,13 @@ const clearFailsafeTimeout = () => {
    * If the TTS has finished playing, but the user has not started speaking yet, then
    * clearTranscriptParts and return.
    */
-    // if (content === lastContentRef.current){
-    //   if (!speechStartCheck.current){
     if(!activeAssistantResponse.current){
       if (!activeUserResponse.current){
-        console.log('user response has not started');
+        console.log('User response has not started. Clearing transcript.');
         clearTranscriptParts();
         return;
       }
     }
-    // }
-    // lastContentRef.current = content;
 
     /**
      * failsafe was triggered since we last sent a message to TTS
@@ -560,9 +554,9 @@ const clearFailsafeTimeout = () => {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
+      // console.log('final speech'); //debug
       appendUserSpeechMessage(content);
       clearFailsafeTimeout();
-      speechStartCheck.current = false;
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
