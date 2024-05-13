@@ -68,6 +68,8 @@ export default function Conversation(): JSX.Element {
    * Refs
    */
   const messageMarker = useRef<null | HTMLDivElement>(null);
+  const activeAssistantResponse = useRef<boolean>(false);
+  const activeUserResponse = useRef<boolean>(false);
 
   /**
    * State
@@ -150,8 +152,7 @@ export default function Conversation(): JSX.Element {
             // Restart the microphone after audio ends if the player exists
             if (player) {
               player.onended = () => {
-                // setProcessing(false);
-                clearTranscriptParts();
+                activeAssistantResponse.current = false;
                 startMicrophone();
               };
             } else {
@@ -171,7 +172,7 @@ export default function Conversation(): JSX.Element {
   //An optional callback that will be called when the chat stream ends
   const onFinish = useCallback(
     (msg: any) => {
-      msg.content = cleanString(msg.content); //remove excess characters before TTS.
+      msg.content = cleanString(msg.content); //hack way to remove excess characters before TTS.
       requestTtsAudio(msg);
     },
     [requestTtsAudio]
@@ -306,13 +307,11 @@ export default function Conversation(): JSX.Element {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
+  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUtteranceRef = useRef<string>();
-  const speechStartCheck = useRef<boolean>(false);
-  const appendMessageCheck = useRef<boolean>(false);
   const eventListenerAdded = useRef<boolean>(false); //used to protect against multiple event listeners being added
-
+  
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
     currentUtteranceRef.current = currentUtterance;
@@ -325,8 +324,10 @@ export default function Conversation(): JSX.Element {
   // Utility function to clear timeouts
 const clearFailsafeTimeout = () => {
   if (failsafeTimeoutRef.current) {
+    //console.log('timeout cleared'); //debug
     clearTimeout(failsafeTimeoutRef.current);
     failsafeTimeoutRef.current = null;
+    setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
   }
 };
 
@@ -335,7 +336,6 @@ const clearFailsafeTimeout = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
         console.log("failsafe fires! pew pew!!");
-        speechStartCheck.current = false;
         setFailsafeTriggered(true);
         appendUserSpeechMessage(utterance);
         clearTranscriptParts();
@@ -351,15 +351,14 @@ const clearFailsafeTimeout = () => {
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
-    speechStartCheck.current = false;
+    // console.log('speech end'); //debug
     setupFailsafeTimeout();
   }, [microphoneOpen, setupFailsafeTimeout]);
 
   const onSpeechStart = useCallback(() => {
     if (!microphoneOpen) return;
-    speechStartCheck.current = true;
-    appendMessageCheck.current = false; 
-    // Clear the failsafe timeout if set
+    // console.log('speech start'); //debug
+    activeUserResponse.current = true;
     clearFailsafeTimeout();
     setFailsafeTriggered(false);
     if (player && !player.ended) {
@@ -445,9 +444,6 @@ const clearFailsafeTimeout = () => {
     let content = utteranceText(data);
 
     if (content !== "" || data.speech_final) {
-      if (!speechStartCheck.current){
-        setFailsafeTriggered(false);  //ensure that the failsafe is turned off if we are receiving transcripts
-      }
       addTranscriptPart({
         is_final: data.is_final as boolean,
         speech_final: data.speech_final as boolean,
@@ -480,17 +476,21 @@ const clearFailsafeTimeout = () => {
   const getCurrentUtterance = useCallback(() => {
     const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
       return is_final || speech_final || (!is_final && i === arr.length - 1);
+
     });
     return filteredParts;        // Return the result as before
   }, [transcriptParts]);
 
   const [lastUtterance, setLastUtterance] = useState<number>();
+  const lastContentRef = useRef<string>(null);
 
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = (inputString) => {
-    if (!appendMessageCheck.current){
+    if (activeUserResponse.current){
+      console.log('append user message');
       stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
-      appendMessageCheck.current = true; //onSpeechStart must run again before another speech message is appended.
+      activeAssistantResponse.current = true; //appending the user message automatically starts the LLM response.
+      activeUserResponse.current = false; //this flag prevents another message being appended until onSpeechStart runs again.
       append({
         role: "user",
         content: inputString,
@@ -506,13 +506,26 @@ const clearFailsafeTimeout = () => {
       .join(" ")
       .trim();
 
-
     /**
      * if the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
     if (!content) {
       return;
+    }
+
+    /**
+   * onTranscipt can occasionally get the same content several times. 
+   * This check guards against that scenario.
+   * If the TTS has finished playing, but the user has not started speaking yet, then
+   * clearTranscriptParts and return.
+   */
+    if(!activeAssistantResponse.current){
+      if (!activeUserResponse.current){
+        console.log('User response has not started. Clearing transcript.');
+        clearTranscriptParts();
+        return;
+      }
     }
 
     /**
@@ -540,9 +553,9 @@ const clearFailsafeTimeout = () => {
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
     if (last && last.speech_final) {
+      // console.log('final speech'); //debug
       appendUserSpeechMessage(content);
       clearFailsafeTimeout();
-      speechStartCheck.current = false;
       clearTranscriptParts();
       setCurrentUtterance(undefined);
     }
