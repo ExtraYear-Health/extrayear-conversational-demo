@@ -7,7 +7,6 @@ import {
   LiveTranscriptionEvents,
 } from '@deepgram/sdk';
 import { Message, useChat } from 'ai/react';
-import { NextUIProvider } from '@nextui-org/react';
 import { useMicVAD } from '@ricky0123/vad-react';
 import { useNowPlaying } from 'react-nowplaying';
 import { useQueue } from '@uidotdev/usehooks';
@@ -46,7 +45,7 @@ export default function Conversation() {
   const { addAudio } = useAudioStore();
   const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
   const { addMessageData } = useMessageData();
-  const [introContent, setIntroContent] = useState(null);
+
   const {
     microphoneOpen,
     queue: microphoneQueue,
@@ -78,30 +77,28 @@ export default function Conversation() {
    * State
    */
   const [isProcessing, setProcessing] = useState(false);
-  const [processingPrompt, setProcessingPrompt] = useState(true);
+
   const [initialLoad, setInitialLoad] = useState(true);
 
   const assistant = voiceMap(state.ttsOptions.model);
 
-  // Use this effect to process and initialize prompt content.
-  useEffect(() => {
+  const introContent = useMemo(() => {
     // Check if we need to process the prompt.
-    if (processingPrompt && state.selectedPrompt) {
+    if (state.selectedPrompt) {
       const promptString = state.selectedPrompt.text;
 
       // Validate the prompt string to ensure it's usable.
       if (!promptString || promptString.trim() === '') {
         console.log('prompt is null or empty');
-        return; // Halt execution if the prompt content is invalid.
+        return null;
       }
 
       const extractedContent = extractIntroContent(promptString);
-      setIntroContent(extractedContent);
-
-      // Mark prompt processing as complete.
-      setProcessingPrompt(false);
+      return extractedContent;
     }
-  }, [processingPrompt, state.selectedPrompt]);
+  }, [state.selectedPrompt]);
+
+  const processingPrompt = !introContent; // assume processing is ongoing if introContent is not available
 
   // Defines a memoized function to request TTS audio using current TTS settings.
   const requestTtsAudio = useCallback(
