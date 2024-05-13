@@ -68,6 +68,8 @@ export default function Conversation(): JSX.Element {
    * Refs
    */
   const messageMarker = useRef<null | HTMLDivElement>(null);
+  const activeAssistantResponse = useRef<boolean>(false);
+  const activeUserResponse = useRef<boolean>(false);
 
   /**
    * State
@@ -150,7 +152,7 @@ export default function Conversation(): JSX.Element {
             // Restart the microphone after audio ends if the player exists
             if (player) {
               player.onended = () => {
-                clearTranscriptParts();
+                activeAssistantResponse.current = false;
                 startMicrophone();
               };
             } else {
@@ -310,8 +312,7 @@ export default function Conversation(): JSX.Element {
   const currentUtteranceRef = useRef<string>();
   const speechStartCheck = useRef<boolean>(false);
   const eventListenerAdded = useRef<boolean>(false); //used to protect against multiple event listeners being added
-  const activeUserResponse = useRef<boolean>(false);
-
+  
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
     currentUtteranceRef.current = currentUtterance;
@@ -491,6 +492,7 @@ const clearFailsafeTimeout = () => {
   const appendUserSpeechMessage = (inputString) => {
     if (activeUserResponse.current){
       stopMicrophone(); //stop the microphone now. The microphone will start again after TTS plays.
+      activeAssistantResponse.current = true; //appending the user message automatically starts the LLM response.
       activeUserResponse.current = false; //this flag prevents another message being appended until onSpeechStart runs again.
       append({
         role: "user",
@@ -518,13 +520,17 @@ const clearFailsafeTimeout = () => {
     /**
    * onTranscipt can occasionally get the same content several times. 
    * This check guards against that scenario.
+   * If the TTS has finished playing, but the user has not started speaking yet, then
+   * clearTranscriptParts and return.
    */
     // if (content === lastContentRef.current){
     //   if (!speechStartCheck.current){
-    if (!activeUserResponse.current){
-      console.log('user response has not started');
-      clearTranscriptParts();
-      return;
+    if(!activeAssistantResponse.current){
+      if (!activeUserResponse.current){
+        console.log('user response has not started');
+        clearTranscriptParts();
+        return;
+      }
     }
     // }
     // lastContentRef.current = content;

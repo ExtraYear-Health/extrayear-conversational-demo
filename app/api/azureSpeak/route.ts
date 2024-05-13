@@ -4,9 +4,8 @@ import { NextRequest, NextResponse, userAgent } from "next/server";
 export async function POST(req: NextRequest) {
     // Parse the JSON body from the request
     const data = await req.json();
-    //const { message, voiceId } = data;
-    const { message } = data;
-    const voiceId = "en-US-AvaMultilingualNeural";
+    const { message, voiceId } = data;
+    //const voiceId = "en-US-AvaMultilingualNeural";
 
     // Start timer for latency measurement
     const start = Date.now();
