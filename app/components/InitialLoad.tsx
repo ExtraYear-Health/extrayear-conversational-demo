@@ -67,7 +67,7 @@ const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSe
 export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: boolean; }) => {
   const { state, dispatch } = useDeepgram();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const initialLLMModel = state.llm?.llmModel || 'openai-gpt4-turbo';
+  const initialLLMModel = state.llm?.llmModel || 'openai-gpt4o';
   const { toast } = useToast();
   const [llmModel, setLLMModel] = useState<string>(initialLLMModel);
   const initialPrompt = 'londonMarathonArticleConversation'; // TODO: define default setup elsewhere

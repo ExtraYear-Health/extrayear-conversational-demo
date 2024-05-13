@@ -109,7 +109,7 @@ export const Settings = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const initialProvider = (state.ttsOptions?.provider || ttsProviders[0]?.id) as string;
   const initialModel = state.ttsOptions?.model || undefined;
-  const initialLLMModel = state.llm?.llmModel || 'openai-gpt4-turbo';
+  const initialLLMModel = state.llm?.llmModel || 'openai-gpt4o';
   const [provider, setProvider] = useState<string>(initialProvider);
   const [model, setModel] = useState<string | undefined>(initialModel);
   const [llmModel, setLLMModel] = useState<string>(initialLLMModel);

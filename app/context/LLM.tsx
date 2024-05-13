@@ -9,6 +9,15 @@ export interface LLMModelConfig {
 }
 
 export const llmModels: { [key: string]: LLMModelConfig; } = {
+  'openai-gpt4o': {
+    llmProvider: 'openai',
+    llmModel: 'gpt-4o',
+    api: '/api/brain',
+    settings: {
+      temperature: 1.0,
+      maxTokens: 2048,
+    },
+  },
   'openai-gpt4-turbo': {
     llmProvider: 'openai',
     llmModel: 'gpt-4-turbo',
