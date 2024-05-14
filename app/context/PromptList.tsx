@@ -9,6 +9,7 @@ import { icebreakerFriends } from '../prompts/icebreakerFriends';
 import { chooseAdverntureMysteryInLocation } from '../prompts/chooseAdverntureMysteryInLocation';
 import { storyCubes01 } from '../prompts/storyCubes01';
 import { movieConversation } from '../prompts/movieConversation';
+import { currentEventsConversation } from '../prompts/currentEventsConversation';
 
 export interface PromptConfig {
   id: string;
@@ -55,6 +56,12 @@ export const promptData: { [key: string]: PromptConfig; } = {
     title: 'A conversational movie trivia game',
     description: 'Guess and discuss movies from your youth',
     text: movieConversation,
+  },
+  currentEventsConversation: {
+    id: 'currentEventsConversation',
+    title: 'A conversational current event trivia game',
+    description: 'Guess and discuss current events from your youth',
+    text: currentEventsConversation,
   },
   // Additional prompts can be added here
 };
