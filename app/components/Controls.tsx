@@ -2,17 +2,14 @@ import { Message } from 'ai/react';
 import { Tooltip } from '@nextui-org/react';
 import { useCallback, useEffect } from 'react';
 import { useNowPlaying } from 'react-nowplaying';
+// Better to use library, a lot of complexity is involved in building the resizable input
 import TextareaAutosize from 'react-textarea-autosize';
 
 import { useMicrophone } from '../context/Microphone';
 import { useSubmit } from '../lib/hooks/useSubmit';
 
-import { Download } from './Download';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { SendIcon } from './icons/SendIcon';
-import { Settings } from './Settings';
-
-// Better to use library, a lot of complexity is involved in building the resizable input
 
 export const Controls = ({
   input,
@@ -64,10 +61,6 @@ export const Controls = ({
   return (
     <form onSubmit={submitter} ref={formRef}>
       <div className="relative p-2">
-        <div className="absolute w-full -top-[4.5rem] py-4 flex justify-between responsive-hide">
-          <Settings />
-          <Download messages={messages} />
-        </div>
         <div className="flex bg-[#101014] rounded-full">
           <span
             className={`rounded-tl-[2rem] rounded-bl-[2rem] ps-0.5 py-0.5 ${
@@ -93,13 +86,6 @@ export const Controls = ({
                 <div className="w-auto flex items-center justify-center shrink-0">
                   <MicrophoneIcon micOpen={microphoneOpen} className="h-5 md:h-6" />
                 </div>
-                {/* <span>
-                {microphoneOpen ? (
-                  <>Now listening...</>
-                ) : (
-                  <>{`${isTablet || isMobile ? "Tap" : "Click"} to speak`}</>
-                )}
-              </span> */}
               </a>
             </Tooltip>
           </span>
@@ -125,7 +111,6 @@ export const Controls = ({
                 type="submit"
                 className="w-16 md:w-24 h-full py-2 md:py-4 px-2 rounded-tr-[2rem] rounded-br-[2rem] font-bold bg-[#101014] text-light-900 text-sm sm:text-base flex items-center justify-center"
               >
-                {/* <span>Send text</span> */}
                 <SendIcon className="h-6 w-6" />
               </button>
             </Tooltip>
