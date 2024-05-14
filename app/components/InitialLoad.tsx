@@ -1,33 +1,33 @@
-import { ExclamationIcon } from './icons/ExclamationIcon';
-import { Headphones } from './Headphones';
-import { isBrowser, isIOS } from 'react-device-detect';
-import { Avatar, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, useDisclosure } from '@nextui-org/react';
-import React, { useContext, useState, useEffect, Dispatch, SetStateAction } from 'react';
-import Image from 'next/image';
-import { Spinner } from '@nextui-org/react';
-import { useDeepgram } from '../context/Deepgram'; // Ensure the path matches where your context is defined
-import { llmModels, llmModelMap, LLMModelConfig } from '../context/LLM';
-import { DeepgramContext } from '../context/Deepgram';
-import { useToast } from '../context/Toast';
-import { promptData, PromptConfig } from '../context/PromptList'; // Update the import path as needed
+import { isBrowser } from 'react-device-detect';
+import { Avatar, Button, Select, SelectItem, Spinner } from '@nextui-org/react';
+import React from 'react';
 
-const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetStateAction<string>>; }> = ({ llmModel, setLLMModel }) => {
+import { useDeepgram, voices } from '../context/Deepgram'; // Ensure the path matches where your context is defined
+import { llmModels } from '../context/LLM';
+import { promptData } from '../context/PromptList'; // Update the import path as needed
+
+interface ConversationSelectOptionsProps {
+  value?: string;
+  onChange?(value: string): void;
+}
+
+const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
   const llmModelOptions = Object.entries(llmModels).map(([key, value]) => ({
-    key,
+    id: key,
     label: `${value.llmProvider} - ${value.llmModel}`,
     api: value.api,
   }));
 
   return (
     <Select
-      value={llmModel}
-      selectedKeys={[llmModel]}
-      onChange={(e) => setLLMModel(e.target.value)}
+      value={value}
+      selectedKeys={[value]}
+      onChange={(e) => onChange(e.target.value)}
       label="Select LLM Model"
       variant="bordered"
     >
       {llmModelOptions.map((option) => (
-        <SelectItem key={option.key} value={option.key}>
+        <SelectItem key={option.id} value={option.id}>
           {option.label}
         </SelectItem>
       ))}
@@ -35,28 +35,23 @@ const LLMModelSelection: React.FC<{ llmModel: string; setLLMModel: Dispatch<SetS
   );
 };
 
-interface PromptSelectionProps {
-  selectedPrompt: string;
-  setSelectedPrompt: Dispatch<SetStateAction<string>>;
-}
-
-const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSelectedPrompt }) => {
+const PromptSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
   const promptOptions = Object.entries(promptData).map(([key, value]) => ({
-    key,
+    id: key,
     label: value.title,
     description: value.description,
   }));
 
   return (
     <Select
-      value={selectedPrompt}
-      selectedKeys={[selectedPrompt]}
-      onChange={(e) => setSelectedPrompt(e.target.value)}
+      value={value}
+      selectedKeys={[value]}
+      onChange={(e) => onChange(e.target.value)}
       label="Select a Conversation"
       variant="bordered"
     >
       {promptOptions.map((option) => (
-        <SelectItem key={option.key} value={option.key} textValue={option.label}>
+        <SelectItem key={option.id} value={option.id} textValue={option.label}>
           {option.label}
         </SelectItem>
       ))}
@@ -64,38 +59,54 @@ const PromptSelection: React.FC<PromptSelectionProps> = ({ selectedPrompt, setSe
   );
 };
 
-export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: boolean; }) => {
+const VoiceAssistantSelect = ({ value, onChange }: ConversationSelectOptionsProps) => {
+  const options = Object.entries(voices).map(([key, obj]) => ({
+    id: key,
+    ...obj,
+  }));
+
+  return (
+    <Select
+      items={options}
+      variant="bordered"
+      onChange={(e) => onChange?.(e.target.value)}
+      label="Select a Voice Assistant"
+      placeholder="Select a user"
+      selectedKeys={[value]}
+    >
+      {(option) => (
+        <SelectItem key={option.id} value={option.id} textValue={option.name}>
+          <div className="flex gap-2 items-center">
+            <Avatar alt={option.name} className="flex-shrink-0" size="sm" src={option.avatar} />
+            <div className="flex flex-col">
+              <span className="text-small">{option.name}</span>
+              <span className="text-tiny text-default-400">{option.ttsProvider}</span>
+            </div>
+          </div>
+        </SelectItem>
+      )}
+    </Select>
+  );
+};
+
+interface InitialLoadProps {
+  onSubmit: () => void;
+  connecting: boolean;
+}
+
+export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
   const { state, dispatch } = useDeepgram();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const initialLLMModel = state.llm?.llmModel || 'openai-gpt4o';
-  const { toast } = useToast();
-  const [llmModel, setLLMModel] = useState<string>(initialLLMModel);
-  const initialPrompt = 'londonMarathonArticleConversation'; // TODO: define default setup elsewhere
-  const [selectedPrompt, setSelectedPrompt] = useState<string>(initialPrompt);
 
-  const saveAndClose = () => {
-    // Dispatch the action to update the LLM model in the state
-    dispatch({
-      type: 'SET_LLM',
-      payload: llmModel,
-    });
+  const {
+    llm,
+    selectedPrompt: { id: selectedPrompt },
+    ttsOptions: { model: voiceModel },
+  } = state;
 
-    // Dispatch the action to update the selected prompt in the state
-    dispatch({
-      type: 'SET_PROMPT',
-      payload: selectedPrompt, // Make sure this variable holds the prompt ID or relevant identifier
-    });
+  // TODO: refactor context state so we can use llmModel directly
+  const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-    // Close the modal or dialog
-    onClose();
-  };
-
-  const handleButtonClick = () => {
-    if (!connecting) {
-      fn(); // Call the function passed as prop
-      saveAndClose(); // Call the save and close function
-    }
-  };
+  const disableButton = connecting || !llmModel || !selectedPrompt || !voiceModel;
 
   return (
     <>
@@ -107,22 +118,54 @@ export const InitialLoad = ({ fn, connecting }: { fn: () => void; connecting: bo
             Cognitive Rehab Tech Demo
           </h2>
           <div className="flex justify-center mt-4">
-            <p className="text-center">Conversations for Cognitive Health</p>
+            <p className="text-center text-default-400">Conversations for Cognitive Health</p>
           </div>
           <div className="mt-6">
             <div className="my-2.5">
-              <LLMModelSelection llmModel={llmModel} setLLMModel={setLLMModel} />
+              <LLMModelSelection
+                value={llmModel}
+                onChange={(value) => {
+                  dispatch({
+                    type: 'SET_LLM',
+                    payload: value,
+                  });
+                }}
+              />
             </div>
             <div className="my-2.5">
-              <PromptSelection selectedPrompt={selectedPrompt} setSelectedPrompt={setSelectedPrompt} />
+              <PromptSelection
+                value={selectedPrompt}
+                onChange={(value) => {
+                  dispatch({
+                    type: 'SET_PROMPT',
+                    payload: value, // Make sure this variable holds the prompt ID or relevant identifier
+                  });
+                }}
+              />
+            </div>
+            <div className="my-2.5">
+              <VoiceAssistantSelect
+                value={voiceModel}
+                onChange={(value) => {
+                  dispatch({
+                    type: 'SET_TTS_OPTIONS',
+                    payload: {
+                      model: value,
+                      provider: voices[value].ttsProvider,
+                    },
+                  });
+                }}
+              />
             </div>
 
             <Button
-              disabled={connecting}
-              onClick={handleButtonClick}
+              className="mt-4 disabled"
               color="primary"
+              isDisabled={disableButton}
               fullWidth
               isLoading={connecting}
+              onClick={onSubmit}
+              size="lg"
               startContent={connecting && (
                 <Spinner size="sm" />
               )}
