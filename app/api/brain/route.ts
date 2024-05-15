@@ -1,48 +1,61 @@
-import OpenAI from "openai";
-import { OpenAIStream, StreamingTextResponse } from "ai";
+import OpenAI from 'openai';
+import { Message, OpenAIStream, StreamingTextResponse } from 'ai';
+import Mustache from 'mustache';
+
+import { promptData } from './prompts';
+
+import { systemContent } from '@/app/lib/constants';
+import { generateRandomString } from '@/app/lib/helpers';
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
-export const runtime = "edge";
+export const runtime = 'edge';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export async function POST(req: Request) {
-  // Extract the `messages` from the body of the request
   const data = await req.json();
-  const messages = data.messages;
-  const model = data.llmModel;
-  const temp = data.temperature;
-  const maxTokens = data.maxTokens;
-  // const { messages } = await req.json();
+
+  const { messages, llmModel, temp, maxTokens, promptId, templateVars } = data;
+
   const start = Date.now();
 
-  console.log('openai api', model);
+  const instructionsPrompt = {
+    id: generateRandomString(7),
+    role: 'system',
+    content: systemContent,
+  } satisfies Message;
 
-  // Request the OpenAI API for the response based on the prompt
+  const selectedPromptText = promptData[promptId].text;
+
+  const topicPrompt = {
+    id: generateRandomString(7),
+    role: 'user',
+    content: Mustache.render(selectedPromptText, {
+      assistant_name: templateVars.assistantName,
+    }),
+  } satisfies Message;
+
   try {
     const response = await openai.chat.completions.create({
-      model: model,
+      model: llmModel,
       temperature: temp,
       max_tokens: maxTokens,
-      //model: "gpt-4-0125-preview",
-      //model: "gpt-4-turbo",
-      //model: "gpt-3.5-turbo-16k-0613",
       stream: true,
-      messages: messages,
+      messages: [instructionsPrompt, topicPrompt, ...messages],
     });
 
     const stream = OpenAIStream(response);
 
     return new StreamingTextResponse(stream, {
       headers: {
-        "X-LLM-Start": `${start}`,
-        "X-LLM-Response": `${Date.now()}`,
+        'X-LLM-Start': `${start}`,
+        'X-LLM-Response': `${Date.now()}`,
       },
     });
   } catch (error) {
-    console.error("test", error);
+    console.error('test', error);
   }
 }

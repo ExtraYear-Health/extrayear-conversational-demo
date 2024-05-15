@@ -10,6 +10,8 @@ import { useSubmit } from '../lib/hooks/useSubmit';
 
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { SendIcon } from './icons/SendIcon';
+import { Settings } from './Settings';
+import { Download } from './Download';
 
 export const Controls = ({
   input,
@@ -61,6 +63,10 @@ export const Controls = ({
   return (
     <form onSubmit={submitter} ref={formRef}>
       <div className="relative p-2">
+        <div className="absolute w-full -top-[4.5rem] py-4 flex justify-between responsive-hide">
+          <Settings />
+          <Download messages={messages} />
+        </div>
         <div className="flex bg-[#101014] rounded-full">
           <span
             className={`rounded-tl-[2rem] rounded-bl-[2rem] ps-0.5 py-0.5 ${
