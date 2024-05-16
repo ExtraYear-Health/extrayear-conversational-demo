@@ -15,14 +15,12 @@ import React, {
   useRef,
   useReducer,
   Dispatch,
-  useState,
 } from 'react';
 
-import { llmModels, llmModelMap, LLMModelConfig } from '../context/LLM';
+import { llmModelMap, LLMModelConfig } from '../context/LLM';
 
 import { useToast } from './Toast';
 import { voices, voiceMap } from './Voices';
-import { promptData, PromptConfig, getPromptConfig } from './PromptList';
 
 type DeepgramAction =
   | { type: 'SET_CONNECTING'; payload: boolean; }
@@ -50,7 +48,7 @@ type DeepgramState = {
   llmLatency?: { start: number; response: number; };
   isLoadingKey: boolean;
   llm?: LLMModelConfig | undefined;
-  selectedPrompt?: PromptConfig | undefined;
+  selectedPromptId?: string;
 };
 
 type DeepgramContext = {
@@ -73,7 +71,7 @@ const initialState: DeepgramState = {
 
   // Language Model options
   llm: llmModelMap('openai-gpt4o'),
-  selectedPrompt: getPromptConfig('londonMarathonArticleConversation'),
+  selectedPromptId: 'londonMarathonArticleConversation',
 
   // Text-to-Speech options
   ttsOptions: {
@@ -131,12 +129,7 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
     case 'SET_LOADING_KEY':
       return { ...state, isLoadingKey: action.payload };
     case 'SET_PROMPT':
-      const promptConfig = getPromptConfig(action.payload); // Use getPromptConfig to find the prompt
-      if (!promptConfig) {
-        console.error('Prompt not found:', action.payload);
-        return state; // Optionally handle this error more gracefully
-      }
-      return { ...state, selectedPrompt: promptConfig }; // Set the found prompt config
+      return { ...state, selectedPromptId: action.payload };
     case 'SET_LLM':
       const llmConfig = llmModelMap(action.payload);
       if (!llmConfig) {
@@ -244,7 +237,7 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       console.log('set llm');
       dispatch({ type: 'SET_LLM', payload: 'openai-gpt4o' });
     }
-  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPrompt]);// [connect, state.connection, state.sttOptions, state.ttsOptions]);
+  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPromptId]);// [connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (
     <DeepgramContext.Provider value={{ state, dispatch }}>
