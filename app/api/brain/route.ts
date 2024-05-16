@@ -1,6 +1,9 @@
 import OpenAI from 'openai';
-import { Message, OpenAIStream, StreamingTextResponse } from 'ai';
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 import Mustache from 'mustache';
+import Groq from 'groq-sdk';
+import { NextResponse } from 'next/server';
+import { ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam } from 'openai/resources/index.mjs';
 
 import { promptData } from './prompts';
 
@@ -15,47 +18,86 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+function isOpenAi(llmModel: string) {
+  return llmModel.includes('gpt');
+}
+
 export async function POST(req: Request) {
   const data = await req.json();
-
-  const { messages, llmModel, temp, maxTokens, promptId, templateVars } = data;
+  const { messages: dataMessages, llmModel, temperature, maxTokens, promptId, templateVars } = data;
 
   const start = Date.now();
 
   const instructionsPrompt = {
-    id: generateRandomString(7),
+    name: generateRandomString(7),
     role: 'system',
     content: systemContent,
-  } satisfies Message;
+  } satisfies ChatCompletionSystemMessageParam;
 
   const selectedPromptText = promptData[promptId].text;
 
   const topicPrompt = {
-    id: generateRandomString(7),
+    name: generateRandomString(7),
     role: 'user',
     content: Mustache.render(selectedPromptText, {
       assistant_name: templateVars.assistantName,
     }),
-  } satisfies Message;
+  } satisfies ChatCompletionUserMessageParam;
+
+  const messages = [instructionsPrompt, topicPrompt, ...dataMessages];
+
+  console.log('LLM in use:', llmModel);
 
   try {
-    const response = await openai.chat.completions.create({
+    if (isOpenAi(llmModel)) {
+      const response = await openai.chat.completions.create({
+        model: llmModel,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+        messages,
+      });
+
+      const stream = OpenAIStream(response);
+
+      return new StreamingTextResponse(stream, {
+        headers: {
+          'X-LLM-Start': `${start}`,
+          'X-LLM-Response': `${Date.now()}`,
+        },
+      });
+    }
+
+    const response = await groq.chat.completions.create({
+      messages,
       model: llmModel,
-      temperature: temp,
+      temperature,
       max_tokens: maxTokens,
-      stream: true,
-      messages: [instructionsPrompt, topicPrompt, ...messages],
+      top_p: 0.8,
+      seed: 10,
+      stop: null, // ", 6",
+      stream: false, // Assuming streaming is not necessary
     });
 
-    const stream = OpenAIStream(response);
+    // Check response structure and serialize as needed
+    const textResponse = JSON.stringify(response.choices[0]?.message?.content); // Convert the response to a JSON string if it's an object
 
-    return new StreamingTextResponse(stream, {
+    return new NextResponse(textResponse, {
+      status: 200,
       headers: {
+        'Content-Type': 'application/json',
         'X-LLM-Start': `${start}`,
         'X-LLM-Response': `${Date.now()}`,
       },
     });
   } catch (error) {
-    console.error('test', error);
+    console.error('Error processing the request:', error);
+    return new NextResponse(error || error?.message, {
+      status: 500,
+    });
   }
 }

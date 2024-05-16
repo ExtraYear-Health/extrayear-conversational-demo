@@ -188,8 +188,8 @@ export default function Conversation() {
     api: '/api/brain',
     body: {
       llmModel: state.llm.llmModel,
-      temperature: 1.0,
-      maxTokens: 1024,
+      temperature: state.llm.settings.temperature,
+      maxTokens: state.llm.settings.maxTokens,
       promptId: state.selectedPromptId,
       templateVars: {
         assistantName: assistant.name,
