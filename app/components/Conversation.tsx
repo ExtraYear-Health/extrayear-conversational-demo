@@ -27,6 +27,7 @@ import { Controls } from './Controls';
 import { ChatBubble } from './ChatBubble';
 import { Header } from './conversation/Header';
 import { InitialLoad } from './InitialLoad';
+import { getIntroMessage } from './conversation/actions';
 
 /**
  * Conversation element that contains the conversational AI app.
@@ -183,6 +184,7 @@ export default function Conversation() {
     input,
     handleSubmit,
     isLoading: llmLoading,
+    setMessages,
   } = useChat({
     id: 'aura',
     api: '/api/brain',
@@ -260,7 +262,6 @@ export default function Conversation() {
     failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.utterance_end_ms + 500);
   }, [state.sttOptions.utterance_end_ms, appendUserSpeechMessage, clearTranscriptParts]);
 
-
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
     // console.log('speech end'); //debug
@@ -323,24 +324,33 @@ export default function Conversation() {
 
     setInitialLoad(false);
 
-    append({
-      id: generateRandomString(7),
-      role: 'system',
-      content: 'Just a non visible message to trigger intro',
+    const intro = await getIntroMessage(state.selectedPromptId, {
+      assistantName: assistant.name,
     });
+
+    const greetingMessage = {
+      id: generateRandomString(7),
+      role: 'assistant',
+      content: intro,
+    } as Message;
+
+    setMessages([...chatMessages, greetingMessage]);
+    requestTtsAudio(greetingMessage); // request welcome audio
 
     // add a stub message data with no latency
     const promptMetadata: MessageMetadata = {
       ttsModel: state.ttsOptions?.model,
     };
+
     // add a stub message data with no latency
     const welcomeMetadata: MessageMetadata = {
+      ...greetingMessage,
       ttsModel: state.ttsOptions?.model,
     };
 
     addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
-  }, [addMessageData, append, initialLoad, state.ttsOptions?.model]);
+  }, [addMessageData, chatMessages, initialLoad, requestTtsAudio, setMessages, state.ttsOptions?.model]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
