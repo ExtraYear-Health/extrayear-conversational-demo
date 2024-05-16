@@ -334,7 +334,7 @@ export default function Conversation() {
       content: intro,
     } as Message;
 
-    setMessages([...chatMessages, greetingMessage]);
+    setMessages([greetingMessage]);
     requestTtsAudio(greetingMessage); // request welcome audio
 
     // add a stub message data with no latency
@@ -350,7 +350,7 @@ export default function Conversation() {
 
     addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
-  }, [addMessageData, chatMessages, initialLoad, requestTtsAudio, setMessages, state.ttsOptions?.model]);
+  }, [addMessageData, assistant.name, initialLoad, requestTtsAudio, setMessages, state.selectedPromptId, state.ttsOptions?.model]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
