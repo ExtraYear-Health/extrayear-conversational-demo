@@ -104,7 +104,7 @@ const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) 
       value={value?.toString()}
       selectedKeys={[value?.toString()]}
       onChange={(e) => onChange(Number(e.target.value))}
-      label="Select Utterance End (ms)"
+      label="Select STT Delay (ms)"
       variant="bordered"
     >
       {utteranceEndMsOptions.map((option) => (
