@@ -139,7 +139,7 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
   // TODO: refactor context state so we can use llmModel directly
   const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPrompt || !voiceModel || isNaN(utteranceEndMsInput);
+  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput);
 
   return (
     <>
