@@ -9,7 +9,9 @@ import { greetings } from "./constants";
  * @returns {string}
  */
 const utteranceText = (event: LiveTranscriptionEvent) => {
+  console.log(event);
   const words = event.channel.alternatives[0].words;
+  // console.log(words);
   return words.map((word: any) => word.punctuated_word ?? word.word).join(" ");
 };
 

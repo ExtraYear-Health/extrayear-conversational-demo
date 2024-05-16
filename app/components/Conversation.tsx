@@ -314,6 +314,7 @@ export default function Conversation() {
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUtteranceRef = useRef<string>();
   const eventListenerAdded = useRef<boolean>(false); // used to protect against multiple event listeners being added
+  const [utteranceEnded, setUtteranceEnded] = useState<boolean>(false);
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -343,13 +344,16 @@ export default function Conversation() {
         appendUserSpeechMessage(utterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
+        setUtteranceEnded(false);
         currentUtteranceRef.current = undefined; // Reset the ref
       }
     };
     // Clear any existing timeout before setting a new one
     clearFailsafeTimeout();
     // Set the new failsafe timeout
-    failsafeTimeoutRef.current = setTimeout(failsafeAction, 1500);
+    const timeouttime = state.sttOptions.utterance_end_ms + 500;
+    console.log('time', timeouttime);
+    failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.endpointing + state.sttOptions.utterance_end_ms);
   };
 
   const onSpeechEnd = useCallback(() => {
@@ -456,10 +460,16 @@ export default function Conversation() {
     }
   }, [addTranscriptPart]);
 
+  const onUtteranceEnd = useCallback((data) => {
+    setUtteranceEnded(true);
+    //console.log('UtteranceEnd event data:', data);
+  }, []);
+
   useEffect(() => {
     const onOpen = () => {
       if (state.connectionReady && !eventListenerAdded.current) {
         state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
+        state.connection?.addListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
         eventListenerAdded.current = true;
       }
     };
@@ -470,6 +480,7 @@ export default function Conversation() {
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
         if (state.connectionReady && eventListenerAdded.current) {
           state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+          state.connection?.removeListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
           eventListenerAdded.current = false;
         }
       };
@@ -491,6 +502,7 @@ export default function Conversation() {
   const appendUserSpeechMessage = (inputString) => {
     if (activeUserResponse.current) {
       console.log('append user message');
+      setUtteranceEnded(false);
       stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
       activeAssistantResponse.current = true; // appending the user message automatically starts the LLM response.
       activeUserResponse.current = false; // this flag prevents another message being appended until onSpeechStart runs again.
@@ -555,17 +567,19 @@ export default function Conversation() {
     /**
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
-    if (last && last.speech_final) {
+    if (last && last.speech_final && utteranceEnded) {
       // console.log('final speech'); //debug
       appendUserSpeechMessage(content);
       clearFailsafeTimeout();
       clearTranscriptParts();
       setCurrentUtterance(undefined);
+      setUtteranceEnded(false);
     }
   }, [
     getCurrentUtterance,
     clearTranscriptParts,
     failsafeTriggered,
+    utteranceEnded,
   ]);
 
   // Append user-generated content to the chat.

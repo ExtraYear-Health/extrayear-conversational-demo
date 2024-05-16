@@ -101,6 +101,7 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
     llm,
     selectedPrompt: { id: selectedPrompt },
     ttsOptions: { model: voiceModel },
+    // sttOptions: { endpointing: endpointingInput },
   } = state;
 
   // TODO: refactor context state so we can use llmModel directly
@@ -155,6 +156,31 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
                     },
                   });
                 }}
+              />
+            </div>
+            <div className="my-2.5">
+              <label htmlFor="endpointing" className="block text-sm font-medium text-gray-700">
+                Endpointing (100 - 8000 ms)
+              </label>
+              <input
+                type="number"
+                id="endpointing"
+                // value={endpointingInput}
+                onChange={(value) => {
+                  const newValue = parseInt(value.target.value, 10);
+                  if (!isNaN(newValue) && newValue >= 100 && newValue <= 8000) {
+                    dispatch({
+                      type: 'SET_STT_OPTIONS',
+                      payload: {
+                        ...state.sttOptions,
+                        endpointing: newValue,
+                      },
+                    });
+                  }
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                min={100}
+                max={8000}
               />
             </div>
 

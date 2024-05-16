@@ -66,7 +66,7 @@ const initialState: DeepgramState = {
   apiKey: undefined, // Holds the API key string
   apiKeyError: undefined, // Holds any error that occurs during API key retrieval
   isLoadingKey: true,
-  sttOptions: undefined, // Speech-to-Text options
+  //sttOptions: undefined, // Speech-to-Text options
   connection: null, // Represents the LiveClient connection instance
   connecting: false, // Indicates whether the connection process is ongoing
   connectionReady: false, // Indicates whether the connection is established and ready
@@ -80,6 +80,15 @@ const initialState: DeepgramState = {
     model: 'ava-en',
     ttsProvider: voices['ava-en'].ttsProvider,
     voiceId: voices['ava-en'].voiceId,
+  },
+
+  sttOptions: {
+    model: 'nova-2',
+    interim_results: true,
+    smart_format: true,
+    endpointing: 550,
+    utterance_end_ms: 4000,
+    filler_words: true,
   },
 };
 
@@ -174,18 +183,28 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
     }
   }, [state.apiKey]);
 
+  const sTTOptions =  {
+    model: 'nova-2',
+    interim_results: true,
+    smart_format: true,
+    endpointing: 550,
+    utterance_end_ms: 4000,
+    filler_words: true,
+  };
+
   useEffect(() => {
     if (state.apiKey) { // && "key" in apiKey
       console.log('connecting to deepgram'); // first
       const deepgram = createClient(state.apiKey);
-      const connection = deepgram.listen.live({
-        model: 'nova-2',
-        interim_results: true,
-        smart_format: true,
-        endpointing: 550,
-        utterance_end_ms: 1500, // if changed, may need to change the value for the failsafe in Conversation.tsx as well.
-        filler_words: true,
-      });
+      const connection = deepgram.listen.live(sTTOptions);
+      // {
+      //   model: 'nova-2',
+      //   interim_results: true,
+      //   smart_format: true,
+      //   endpointing: 550,
+      //   utterance_end_ms: 3500, 
+      //   filler_words: true,
+      // });
 
       connection.on(LiveTranscriptionEvents.Open, () => {
         dispatch({ type: 'SET_CONNECTION_READY', payload: true });
@@ -231,14 +250,14 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: 'ava-en' } }); // azure TTS
     }
     if (!state.sttOptions) {
-      dispatch({ type: 'SET_STT_OPTIONS', payload: {
-        model: 'nova-2',
-        interim_results: true,
-        smart_format: true,
-        endpointing: 550, // Time in milliseconds of silence to wait for before finalizing speech
-        // utterance_end_ms: 1500, sends utterance end object. doesn't seem to be enabled in this demo. requires interimResults to be true.
-        filler_words: true,
-      } });
+      dispatch({ type: 'SET_STT_OPTIONS', payload: { sTTOptions } });
+    //     model: 'nova-2',
+    //     interim_results: true,
+    //     smart_format: true,
+    //     endpointing: 550, // Time in milliseconds of silence to wait for before finalizing speech
+    //     utterance_end_ms: 3500, //sends utterance end object. doesn't seem to be enabled in this demo. requires interimResults to be true.
+    //     filler_words: true,
+    //   } });
     }
     if (!state.llm) {
       console.log('set llm');
