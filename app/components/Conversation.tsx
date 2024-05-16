@@ -335,7 +335,22 @@ export default function Conversation() {
     }
   };
 
-  const setupFailsafeTimeout = () => {
+  // Append user-generated content to the chat.
+  const appendUserSpeechMessage = useCallback((inputString) => {
+    if (activeUserResponse.current) {
+      console.log('append user message');
+      setUtteranceEnded(false);
+      stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
+      activeAssistantResponse.current = true; // appending the user message automatically starts the LLM response.
+      activeUserResponse.current = false; // this flag prevents another message being appended until onSpeechStart runs again.
+      append({
+        role: 'user',
+        content: inputString,
+      });
+    }
+  }, [stopMicrophone, append]);
+
+  const setupFailsafeTimeout = useCallback(() => {
     const failsafeAction = () => {
       const utterance = currentUtteranceRef.current;
       if (utterance) {
@@ -351,10 +366,8 @@ export default function Conversation() {
     // Clear any existing timeout before setting a new one
     clearFailsafeTimeout();
     // Set the new failsafe timeout
-    const timeouttime = state.sttOptions.utterance_end_ms + 500;
-    console.log('time', timeouttime);
-    failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.endpointing + state.sttOptions.utterance_end_ms);
-  };
+    failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.utterance_end_ms + 500);
+  }, [state.sttOptions.utterance_end_ms, appendUserSpeechMessage, clearTranscriptParts]);
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
@@ -445,6 +458,7 @@ export default function Conversation() {
     initialLoad,
     requestWelcomeAudio,
     state.ttsOptions?.model,
+    processingPrompt,
   ]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
@@ -460,9 +474,8 @@ export default function Conversation() {
     }
   }, [addTranscriptPart]);
 
-  const onUtteranceEnd = useCallback((data) => {
+  const onUtteranceEnd = useCallback(() => {
     setUtteranceEnded(true);
-    //console.log('UtteranceEnd event data:', data);
   }, []);
 
   useEffect(() => {
@@ -485,7 +498,7 @@ export default function Conversation() {
         }
       };
     }
-  }, [state.connection, state.connectionReady, onTranscript]);
+  }, [state.connection, state.connectionReady, onTranscript, onUtteranceEnd]);
 
   const getCurrentUtterance = useCallback(() => {
     const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
@@ -496,22 +509,6 @@ export default function Conversation() {
   }, [transcriptParts]);
 
   const [lastUtterance, setLastUtterance] = useState<number>();
-  const lastContentRef = useRef<string>(null);
-
-  // Append user-generated content to the chat.
-  const appendUserSpeechMessage = (inputString) => {
-    if (activeUserResponse.current) {
-      console.log('append user message');
-      setUtteranceEnded(false);
-      stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
-      activeAssistantResponse.current = true; // appending the user message automatically starts the LLM response.
-      activeUserResponse.current = false; // this flag prevents another message being appended until onSpeechStart runs again.
-      append({
-        role: 'user',
-        content: inputString,
-      });
-    }
-  };
 
   useEffect(() => {
     const parts = getCurrentUtterance();
@@ -580,15 +577,8 @@ export default function Conversation() {
     clearTranscriptParts,
     failsafeTriggered,
     utteranceEnded,
+    appendUserSpeechMessage,
   ]);
-
-  // Append user-generated content to the chat.
-  const appendUserMessage = (inputString) => {
-    append({
-      role: 'user',
-      content: inputString,
-    });
-  };
 
   /**
    * magic microphone audio queue processing

@@ -11,6 +11,11 @@ interface ConversationSelectOptionsProps {
   onChange?(value: string): void;
 }
 
+interface NumberSelectOptionsProps {
+  value?: number;
+  onChange?(value: number): void;
+}
+
 const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
   const llmModelOptions = Object.entries(llmModels).map(([key, value]) => ({
     id: key,
@@ -89,6 +94,28 @@ const VoiceAssistantSelect = ({ value, onChange }: ConversationSelectOptionsProp
   );
 };
 
+const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+  const utteranceEndMsOptions = [
+    1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000,
+  ];
+
+  return (
+    <Select
+      value={value?.toString()}
+      selectedKeys={[value?.toString()]}
+      onChange={(e) => onChange(Number(e.target.value))}
+      label="Select Utterance End (ms)"
+      variant="bordered"
+    >
+      {utteranceEndMsOptions.map((option) => (
+        <SelectItem key={option.toString()} value={option.toString()} textValue={option.toString()}>
+          {option} ms
+        </SelectItem>
+      ))}
+    </Select>
+  );
+};
+
 interface InitialLoadProps {
   onSubmit: () => void;
   connecting: boolean;
@@ -101,13 +128,13 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
     llm,
     selectedPrompt: { id: selectedPrompt },
     ttsOptions: { model: voiceModel },
-    // sttOptions: { endpointing: endpointingInput },
+    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined
   } = state;
 
   // TODO: refactor context state so we can use llmModel directly
   const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPrompt || !voiceModel;
+  const disableButton = connecting || !llmModel || !selectedPrompt || !voiceModel || isNaN(utteranceEndMsInput);
 
   return (
     <>
@@ -159,28 +186,14 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
               />
             </div>
             <div className="my-2.5">
-              <label htmlFor="endpointing" className="block text-sm font-medium text-gray-700">
-                Endpointing (100 - 8000 ms)
-              </label>
-              <input
-                type="number"
-                id="endpointing"
-                // value={endpointingInput}
+              <UtteranceEndMsSelection
+                value={utteranceEndMsInput}
                 onChange={(value) => {
-                  const newValue = parseInt(value.target.value, 10);
-                  if (!isNaN(newValue) && newValue >= 100 && newValue <= 8000) {
-                    dispatch({
-                      type: 'SET_STT_OPTIONS',
-                      payload: {
-                        ...state.sttOptions,
-                        endpointing: newValue,
-                      },
-                    });
-                  }
+                  dispatch({
+                    type: 'SET_UTTERANCE_END_MS',
+                    payload: value,
+                  });
                 }}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                min={100}
-                max={8000}
               />
             </div>
 
