@@ -167,6 +167,7 @@ export default function Conversation() {
     llmModel: string;
     temperature: number;
     maxTokens: number;
+    llmProvider: string;
     promptId: string;
     templateVars: {
       assistantName?: string;
@@ -187,6 +188,7 @@ export default function Conversation() {
     id: 'aura',
     api: '/api/brain',
     body: {
+      llmProvider: state.llm.llmProvider,
       llmModel: state.llm.llmModel,
       temperature: state.llm.settings.temperature,
       maxTokens: state.llm.settings.maxTokens,
@@ -288,7 +290,7 @@ export default function Conversation() {
   useEffect(() => {
     if (llmLoading) {
       return;
-    };
+    }
     if (!state.llmLatency) return;
 
     // Remove extra characters from LLM response.
@@ -339,7 +341,7 @@ export default function Conversation() {
   }, [addMessageData, append, initialLoad, state.ttsOptions?.model]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
-    let content = utteranceText(data);
+    const content = utteranceText(data);
     // console.log('transcript', content); //debug
 
     if (content !== '' || data.speech_final) {
