@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  LiveClient,
   LiveConnectionState,
   LiveTranscriptionEvent,
   LiveTranscriptionEvents,
@@ -10,26 +9,19 @@ import { Message, useChat } from 'ai/react';
 import { useMicVAD } from '@ricky0123/vad-react';
 import { useNowPlaying } from 'react-nowplaying';
 import { useQueue } from '@uidotdev/usehooks';
-import { useState, useEffect, useCallback, useRef, useMemo, useContext } from 'react';
-import Mustache from 'mustache';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
-  contextualGreeting,
   generateRandomString,
   utteranceText,
-  extractIntroContent,
   cleanString,
 } from '../lib/helpers';
 import { MessageMetadata } from '../lib/types';
-import { systemContent } from '../lib/constants';
 import { useDeepgram, voiceMap } from '../context/Deepgram';
 import { useMessageData } from '../context/MessageMetadata';
 import { useMicrophone } from '../context/Microphone';
 import { useAudioStore } from '../context/AudioStore';
-import { useMessageCheck } from '../context/MessageCheck';
-import { llmModels, LLMModelConfig } from '../context/LLM';
 
-import { LeftBubble } from './LeftBubble';
 import { RightBubble } from './RightBubble';
 import { Controls } from './Controls';
 import { ChatBubble } from './ChatBubble';
@@ -81,24 +73,6 @@ export default function Conversation() {
   const [initialLoad, setInitialLoad] = useState(true);
 
   const assistant = voiceMap(state.ttsOptions.model);
-
-  const introContent = useMemo(() => {
-    // Check if we need to process the prompt.
-    if (state.selectedPrompt) {
-      const promptString = state.selectedPrompt.text;
-
-      // Validate the prompt string to ensure it's usable.
-      if (!promptString || promptString.trim() === '') {
-        console.log('prompt is null or empty');
-        return null;
-      }
-
-      const extractedContent = extractIntroContent(promptString);
-      return extractedContent;
-    }
-  }, [state.selectedPrompt]);
-
-  const processingPrompt = !introContent; // assume processing is ongoing if introContent is not available
 
   // Defines a memoized function to request TTS audio using current TTS settings.
   const requestTtsAudio = useCallback(
@@ -188,107 +162,16 @@ export default function Conversation() {
     })();
   }, [dispatch]);
 
-  const systemMessage: Message = useMemo(
-    () => ({
-      id: generateRandomString(7),
-      role: 'system',
-      content: systemContent,
-    }),
-    [],
-  );
-
-  // //Anthropic does not accept system messages
-  // const userSystemMessage: Message = useMemo(
-  //   () => ({
-  //     id: 'AAAA',
-  //     role: "user",
-  //     content: systemContent,
-  //   }),
-  //   []
-  // );
-
-  const greetingMessage: Message = useMemo(() => {
-    // Check if processing is not completed and return a default or null object
-    if (processingPrompt) {
-      return null; // or return some default state that indicates processing is ongoing
-    }
-    return {
-      id: generateRandomString(7),
-      role: 'assistant',
-      content: Mustache.render(introContent, {
-        assistant_name: assistant.name,
-      }),
-    };
-  }, [assistant.name, introContent, processingPrompt]);
-
-  const promptMessage: Message = useMemo(() => {
-    // Check if processing is not completed and return a default or null object
-    if (processingPrompt) {
-      return null; // or return some default state that indicates processing is ongoing
-    }
-
-    let promptContent = null;
-    if (state.llm.llmProvider === 'Anthropic') {
-      promptContent = systemContent + ' ' + state.selectedPrompt.text;
-    } else {
-      promptContent = state.selectedPrompt.text;
-    }
-
-    // Return the actual prompt message object once processing is complete
-    return {
-      id: 'AAAB',
-      role: 'user',
-      content: promptContent, // Access text safely assuming state.selectedPrompt is defined
-    };
-  }, [state.selectedPrompt, processingPrompt]);
-
-  // const promptMessage: Message = useMemo(() => ({
-  //   id: 'AAAB',
-  //   role: "user",
-  //   content: state.selectedPrompt.text, //
-  // }), [state.selectedPrompt]);
-
-  // Define a state to hold the current API endpoint for the chat functionality.
-  const [chatApi, setChatApi] = useState(state.llm?.api || '/api/brain');
-
-  // This effect hook synchronizes the local chatApi state with changes in the global state.
-  // It ensures that the chat component always uses the correct API endpoint if updates occur.
-  useEffect(() => {
-    const newApi = state.llm?.api || '/api/brain';
-    if (chatApi !== newApi) {
-      // Update the local state with the new API endpoint, triggering re-render of dependent components
-      setChatApi(newApi);
-    }
-  }, [state.llm]);
-
   // Define an interface to structure the data for AI model parameters within the application
   interface BodyApiType {
     llmModel: string;
     temperature: number;
     maxTokens: number;
+    promptId: string;
+    templateVars: {
+      assistantName?: string;
+    };
   }
-
-  // Initialize state to store AI model configurations with default settings
-  const [bodyApi, setBodyApi] = useState<BodyApiType>({
-    llmModel: 'gpt-3.5-turbo-16k-0613',
-    temperature: 1.0,
-    maxTokens: 1024,
-  });
-
-  // Effect hook to synchronize bodyApi state with changes in the global state (state.llm)
-  useEffect(() => {
-    // Determine the model to use, defaulting to a specific model if not specified in the state
-    const newApiModel = state.llm?.llmModel || 'gpt-3.5-turbo-16k-0613';
-
-    // Update local state if the global model has changed
-    if (bodyApi.llmModel !== newApiModel) {
-      setBodyApi({
-        llmModel: newApiModel,
-        temperature: state.llm.settings.temperature,
-        maxTokens: state.llm.settings.maxTokens,
-      });
-    }
-  }, [state.llm]); // Dependency on state.llm ensures this runs only when the external state changes
 
   /**
    * AI SDK for the voicebot conversation
@@ -302,9 +185,17 @@ export default function Conversation() {
     isLoading: llmLoading,
   } = useChat({
     id: 'aura',
-    api: chatApi,
-    body: bodyApi,
-    initialMessages: [systemMessage, promptMessage, greetingMessage], // anthropic does not work with system messages
+    api: '/api/brain',
+    body: {
+      llmModel: state.llm.llmModel,
+      temperature: state.llm.settings.temperature,
+      maxTokens: state.llm.settings.maxTokens,
+      promptId: state.selectedPromptId,
+      templateVars: {
+        assistantName: assistant.name,
+      },
+    } satisfies BodyApiType,
+    initialMessages: [],
     onFinish,
     onResponse,
   });
@@ -348,7 +239,7 @@ export default function Conversation() {
         content: inputString,
       });
     }
-  }, [stopMicrophone, append]);
+  }, [append, stopMicrophone]);
 
   const setupFailsafeTimeout = useCallback(() => {
     const failsafeAction = () => {
@@ -368,6 +259,7 @@ export default function Conversation() {
     // Set the new failsafe timeout
     failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.utterance_end_ms + 500);
   }, [state.sttOptions.utterance_end_ms, appendUserSpeechMessage, clearTranscriptParts]);
+
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
@@ -426,40 +318,29 @@ export default function Conversation() {
   /**
    * Contextual functions
    */
-  const requestWelcomeAudio = useCallback(async () => {
-    requestTtsAudio(greetingMessage);
-  }, [greetingMessage, requestTtsAudio]);
-
-  const startConversation = useCallback(() => {
-    if (processingPrompt) return;
+  const startConversation = useCallback(async () => {
     if (!initialLoad) return;
+
     setInitialLoad(false);
+
+    append({
+      id: generateRandomString(7),
+      role: 'system',
+      content: 'Just a non visible message to trigger intro',
+    });
 
     // add a stub message data with no latency
     const promptMetadata: MessageMetadata = {
-      ...promptMessage,
       ttsModel: state.ttsOptions?.model,
     };
-
     // add a stub message data with no latency
     const welcomeMetadata: MessageMetadata = {
-      ...greetingMessage,
       ttsModel: state.ttsOptions?.model,
     };
+
     addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
-
-    // get welcome audio
-    requestWelcomeAudio();
-  }, [
-    addMessageData,
-    greetingMessage,
-    promptMessage,
-    initialLoad,
-    requestWelcomeAudio,
-    state.ttsOptions?.model,
-    processingPrompt,
-  ]);
+  }, [addMessageData, append, initialLoad, state.ttsOptions?.model]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     let content = utteranceText(data);
@@ -678,7 +559,7 @@ export default function Conversation() {
             <div className="min-h-full flex flex-col justify-end">
               <div className="grid grid-cols-12">
 
-                {!processingPrompt && chatMessages?.map((message, i) => {
+                {chatMessages?.map((message, i) => {
                   if (message.id === 'AAAA' || message.id === 'AAAB') {
                     return null;
                   }

@@ -1,10 +1,14 @@
+'use client';
+
 import { isBrowser } from 'react-device-detect';
 import { Avatar, Button, Select, SelectItem, Spinner } from '@nextui-org/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { useDeepgram, voices } from '../context/Deepgram'; // Ensure the path matches where your context is defined
 import { llmModels } from '../context/LLM';
-import { promptData } from '../context/PromptList'; // Update the import path as needed
+import { useActionState } from '../lib/hooks/useActionState';
+
+import { getPromptsOptions } from './conversation/actions';
 
 interface ConversationSelectOptionsProps {
   value?: string;
@@ -41,23 +45,24 @@ const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) 
 };
 
 const PromptSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
-  const promptOptions = Object.entries(promptData).map(([key, value]) => ({
-    id: key,
-    label: value.title,
-    description: value.description,
-  }));
+  const getPromptsAction = useActionState(getPromptsOptions, []);
+
+  useEffect(() => {
+    getPromptsAction.dispatch();
+  }, []);
 
   return (
     <Select
       value={value}
-      selectedKeys={[value]}
+      isLoading={getPromptsAction.loading}
+      selectedKeys={getPromptsAction.data?.length > 0 ? [value] : []}
       onChange={(e) => onChange(e.target.value)}
       label="Select a Conversation"
       variant="bordered"
     >
-      {promptOptions.map((option) => (
-        <SelectItem key={option.id} value={option.id} textValue={option.label}>
-          {option.label}
+      {getPromptsAction.data.map((option) => (
+        <SelectItem key={option.id} value={option.id} textValue={option.title}>
+          {option.title}
         </SelectItem>
       ))}
     </Select>
@@ -126,7 +131,7 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
 
   const {
     llm,
-    selectedPrompt: { id: selectedPrompt },
+    selectedPromptId,
     ttsOptions: { model: voiceModel },
     sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined
   } = state;
@@ -162,7 +167,7 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
             </div>
             <div className="my-2.5">
               <PromptSelection
-                value={selectedPrompt}
+                value={selectedPromptId}
                 onChange={(value) => {
                   dispatch({
                     type: 'SET_PROMPT',
