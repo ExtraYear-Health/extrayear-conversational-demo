@@ -29,6 +29,7 @@ type DeepgramAction =
   | { type: 'SET_CONNECTION_READY'; payload: boolean; }
   | { type: 'SET_TTS_OPTIONS'; payload: SpeakSchema | undefined; }
   | { type: 'SET_STT_OPTIONS'; payload: LiveSchema | undefined; }
+  | { type: 'SET_UTTERANCE_END_MS'; payload: number; }
   | { type: 'SET_LLM_LATENCY'; payload: { start: number; response: number; }; }
   | { type: 'SET_API_KEY'; payload: string | undefined; }
   | { type: 'SET_LLM'; payload: string | undefined; }
@@ -64,7 +65,7 @@ const initialState: DeepgramState = {
   apiKey: undefined, // Holds the API key string
   apiKeyError: undefined, // Holds any error that occurs during API key retrieval
   isLoadingKey: true,
-  sttOptions: undefined, // Speech-to-Text options
+  // sttOptions: undefined, // Speech-to-Text options
   connection: null, // Represents the LiveClient connection instance
   connecting: false, // Indicates whether the connection process is ongoing
   connectionReady: false, // Indicates whether the connection is established and ready
@@ -78,6 +79,15 @@ const initialState: DeepgramState = {
     model: 'ava-en',
     ttsProvider: voices['ava-en'].ttsProvider,
     voiceId: voices['ava-en'].voiceId,
+  },
+
+  sttOptions: {
+    model: 'nova-2',
+    interim_results: true,
+    smart_format: true,
+    endpointing: 550,
+    utterance_end_ms: 1000,
+    filler_words: true,
   },
 };
 
@@ -120,6 +130,13 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
       };
     case 'SET_STT_OPTIONS':
       return { ...state, sttOptions: action.payload };
+    case 'SET_UTTERANCE_END_MS': // New case for updating utterance_end_ms
+      return {
+        ...state,
+        sttOptions: state.sttOptions ?
+          { ...state.sttOptions, utterance_end_ms: action.payload } :
+          { utterance_end_ms: action.payload },
+      };
     case 'SET_LLM_LATENCY':
       return { ...state, llmLatency: action.payload };
     case 'SET_API_KEY':
@@ -150,6 +167,23 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const isMounted = useRef(true);
 
+  // Event listener references
+  const onOpen = useRef((() => {
+    dispatch({ type: 'SET_CONNECTION_READY', payload: true });
+    console.log('connected with new sttOptions');
+  })).current;
+
+  const onClose = useRef((() => {
+    toast('The connection to ExtraYear closed, we\'ll attempt to reconnect.');
+    dispatch({ type: 'RESET_CONNECTION' });
+    console.log('closed');
+  })).current;
+
+  const onError = useRef((() => {
+    toast('An unknown error occurred. We\'ll attempt to reconnect to ExtraYear.');
+    dispatch({ type: 'RESET_CONNECTION' });
+  })).current;
+
   useEffect(() => {
     if (!state.apiKey) {
       console.log('getting a new api key'); // zero
@@ -157,7 +191,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
         .then((res) => res.json())
         .then((object) => {
           if (!('key' in object)) throw new Error('No api key returned');
-
           dispatch({ type: 'SET_API_KEY', payload: object.key });
           dispatch({ type: 'SET_LOADING_KEY', payload: false });
         })
@@ -168,46 +201,32 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
   }, [state.apiKey]);
 
   useEffect(() => {
-    if (state.apiKey) { // && "key" in apiKey
-      console.log('connecting to deepgram'); // first
+    const setupConnection = () => {
+      console.log('connecting to deepgram with new settings');
       const deepgram = createClient(state.apiKey);
-      const connection = deepgram.listen.live({
-        model: 'nova-2',
-        interim_results: true,
-        smart_format: true,
-        endpointing: 550,
-        utterance_end_ms: 1500, // if changed, may need to change the value for the failsafe in Conversation.tsx as well.
-        filler_words: true,
-      });
+      const connection = deepgram.listen.live(state.sttOptions);
 
-      connection.on(LiveTranscriptionEvents.Open, () => {
-        dispatch({ type: 'SET_CONNECTION_READY', payload: true });
-        console.log('connected');
-      });
-
-      connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log('toast error');
-        toast('The connection to ExtraYear closed, we\'ll attempt to reconnect.');
-        dispatch({ type: 'RESET_CONNECTION' });
-        console.log('closed');
-      });
-
-      connection.on(LiveTranscriptionEvents.Error, () => {
-        toast('An unknown error occurred. We\'ll attempt to reconnect to ExtraYear.');
-        dispatch({ type: 'RESET_CONNECTION' });
-      });
+      connection.on(LiveTranscriptionEvents.Open, onOpen);
+      connection.on(LiveTranscriptionEvents.Close, onClose);
+      connection.on(LiveTranscriptionEvents.Error, onError);
 
       dispatch({ type: 'SET_CONNECTION', payload: connection });
-      dispatch({ type: 'SET_CONNECTING', payload: false });
+    };
 
-      if (connection) {
-        return () => {
-          console.log('cleanup connection');
-          dispatch({ type: 'RESET_CONNECTION' });
-        };
-      }
+    if (state.apiKey && !state.connection) {
+      setupConnection();
     }
-  }, [state.apiKey]);
+
+    return () => {
+      if (state.connection) {
+        console.log('cleanup connection on component unmount');
+        state.connection.off(LiveTranscriptionEvents.Open, onOpen);
+        state.connection.off(LiveTranscriptionEvents.Close, onClose);
+        state.connection.off(LiveTranscriptionEvents.Error, onError);
+        dispatch({ type: 'RESET_CONNECTION' });
+      }
+    };
+  }, [state.apiKey, state.sttOptions, toast, onClose, onError, onOpen, state.connection]);
 
   useEffect(() => {
     return () => {
@@ -215,29 +234,6 @@ const DeepgramContextProvider = ({ children }: DeepgramContextInterface) => {
       isMounted.current = false;
     };
   }, []);
-
-  // Set initial values for TTS, STT, and LLM
-  useEffect(() => {
-    if (!state.ttsOptions) {
-      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "aura-asteria-en" } }); //deepgram TTS
-      // dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: "matilda-en" } }); //elevenlabs TTS
-      dispatch({ type: 'SET_TTS_OPTIONS', payload: { model: 'ava-en' } }); // azure TTS
-    }
-    if (!state.sttOptions) {
-      dispatch({ type: 'SET_STT_OPTIONS', payload: {
-        model: 'nova-2',
-        interim_results: true,
-        smart_format: true,
-        endpointing: 550, // Time in milliseconds of silence to wait for before finalizing speech
-        // utterance_end_ms: 1500, sends utterance end object. doesn't seem to be enabled in this demo. requires interimResults to be true.
-        filler_words: true,
-      } });
-    }
-    if (!state.llm) {
-      console.log('set llm');
-      dispatch({ type: 'SET_LLM', payload: 'openai-gpt4o' });
-    }
-  }, [state.connection, state.sttOptions, state.ttsOptions, state.llm, state.selectedPromptId]);// [connect, state.connection, state.sttOptions, state.ttsOptions]);
 
   return (
     <DeepgramContext.Provider value={{ state, dispatch }}>

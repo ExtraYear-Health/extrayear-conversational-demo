@@ -205,6 +205,7 @@ export default function Conversation() {
   const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentUtteranceRef = useRef<string>();
   const eventListenerAdded = useRef<boolean>(false); // used to protect against multiple event listeners being added
+  const [utteranceEnded, setUtteranceEnded] = useState<boolean>(false);
 
   // Update the ref whenever currentUtterance changes
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function Conversation() {
   const appendUserSpeechMessage = useCallback((inputString) => {
     if (activeUserResponse.current) {
       console.log('append user message');
+      setUtteranceEnded(false);
       stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
       activeAssistantResponse.current = true; // appending the user message automatically starts the LLM response.
       activeUserResponse.current = false; // this flag prevents another message being appended until onSpeechStart runs again.
@@ -248,14 +250,16 @@ export default function Conversation() {
         appendUserSpeechMessage(utterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
+        setUtteranceEnded(false);
         currentUtteranceRef.current = undefined; // Reset the ref
       }
     };
     // Clear any existing timeout before setting a new one
     clearFailsafeTimeout();
     // Set the new failsafe timeout
-    failsafeTimeoutRef.current = setTimeout(failsafeAction, 1500);
-  }, [appendUserSpeechMessage, clearTranscriptParts]);
+    failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.utterance_end_ms + 500);
+  }, [state.sttOptions.utterance_end_ms, appendUserSpeechMessage, clearTranscriptParts]);
+
 
   const onSpeechEnd = useCallback(() => {
     if (!microphoneOpen) return;
@@ -351,10 +355,15 @@ export default function Conversation() {
     }
   }, [addTranscriptPart]);
 
+  const onUtteranceEnd = useCallback(() => {
+    setUtteranceEnded(true);
+  }, []);
+
   useEffect(() => {
     const onOpen = () => {
       if (state.connectionReady && !eventListenerAdded.current) {
         state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
+        state.connection?.addListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
         eventListenerAdded.current = true;
       }
     };
@@ -365,11 +374,12 @@ export default function Conversation() {
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
         if (state.connectionReady && eventListenerAdded.current) {
           state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+          state.connection?.removeListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
           eventListenerAdded.current = false;
         }
       };
     }
-  }, [state.connection, state.connectionReady, onTranscript]);
+  }, [state.connection, state.connectionReady, onTranscript, onUtteranceEnd]);
 
   const getCurrentUtterance = useCallback(() => {
     const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
@@ -380,7 +390,6 @@ export default function Conversation() {
   }, [transcriptParts]);
 
   const [lastUtterance, setLastUtterance] = useState<number>();
-  const lastContentRef = useRef<string>(null);
 
   useEffect(() => {
     const parts = getCurrentUtterance();
@@ -436,22 +445,21 @@ export default function Conversation() {
     /**
      * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
      */
-    if (last && last.speech_final) {
+    if (last && last.speech_final && utteranceEnded) {
       // console.log('final speech'); //debug
       appendUserSpeechMessage(content);
       clearFailsafeTimeout();
       clearTranscriptParts();
       setCurrentUtterance(undefined);
+      setUtteranceEnded(false);
     }
-  }, [getCurrentUtterance, clearTranscriptParts, failsafeTriggered, appendUserSpeechMessage]);
-
-  // Append user-generated content to the chat.
-  const appendUserMessage = (inputString) => {
-    append({
-      role: 'user',
-      content: inputString,
-    });
-  };
+  }, [
+    getCurrentUtterance,
+    clearTranscriptParts,
+    failsafeTriggered,
+    utteranceEnded,
+    appendUserSpeechMessage,
+  ]);
 
   /**
    * magic microphone audio queue processing

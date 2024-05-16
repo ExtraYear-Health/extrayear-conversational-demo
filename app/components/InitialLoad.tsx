@@ -15,6 +15,11 @@ interface ConversationSelectOptionsProps {
   onChange?(value: string): void;
 }
 
+interface NumberSelectOptionsProps {
+  value?: number;
+  onChange?(value: number): void;
+}
+
 const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
   const llmModelOptions = Object.entries(llmModels).map(([key, value]) => ({
     id: key,
@@ -94,6 +99,28 @@ const VoiceAssistantSelect = ({ value, onChange }: ConversationSelectOptionsProp
   );
 };
 
+const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+  const utteranceEndMsOptions = [
+    1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000,
+  ];
+
+  return (
+    <Select
+      value={value?.toString()}
+      selectedKeys={[value?.toString()]}
+      onChange={(e) => onChange(Number(e.target.value))}
+      label="Select STT Delay (ms)"
+      variant="bordered"
+    >
+      {utteranceEndMsOptions.map((option) => (
+        <SelectItem key={option.toString()} value={option.toString()} textValue={option.toString()}>
+          {option} ms
+        </SelectItem>
+      ))}
+    </Select>
+  );
+};
+
 interface InitialLoadProps {
   onSubmit: () => void;
   connecting: boolean;
@@ -106,12 +133,13 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
     llm,
     selectedPromptId,
     ttsOptions: { model: voiceModel },
+    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined
   } = state;
 
   // TODO: refactor context state so we can use llmModel directly
   const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel;
+  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput);
 
   return (
     <>
@@ -158,6 +186,17 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
                       model: value,
                       provider: voices[value].ttsProvider,
                     },
+                  });
+                }}
+              />
+            </div>
+            <div className="my-2.5">
+              <UtteranceEndMsSelection
+                value={utteranceEndMsInput}
+                onChange={(value) => {
+                  dispatch({
+                    type: 'SET_UTTERANCE_END_MS',
+                    payload: value,
                   });
                 }}
               />
