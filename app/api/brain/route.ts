@@ -9,6 +9,7 @@ import { promptData } from './prompts';
 
 import { systemContent } from '@/app/lib/constants';
 import { generateRandomString } from '@/app/lib/helpers';
+import { llmModels } from '@/app/context/LLM';
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
@@ -53,7 +54,34 @@ export async function POST(req: Request) {
   console.log('LLM in use:', llmModel);
 
   try {
-    if (isOpenAi(llmModel)) {
+    const llmProvider = Object.values(llmModels).find((m) => m.llmModel === llmModel).llmProvider;
+
+    if (llmProvider === 'meta') {
+      const response = await groq.chat.completions.create({
+        messages,
+        model: llmModel,
+        temperature,
+        max_tokens: maxTokens,
+        top_p: 0.8,
+        seed: 10,
+        stop: null, // ", 6",
+        stream: false, // Assuming streaming is not necessary
+      });
+
+      // Check response structure and serialize as needed
+      const textResponse = JSON.stringify(response.choices[0]?.message?.content); // Convert the response to a JSON string if it's an object
+
+      return new NextResponse(textResponse, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-LLM-Start': `${start}`,
+          'X-LLM-Response': `${Date.now()}`,
+        },
+      });
+    }
+
+    if (llmProvider === 'openai') {
       const response = await openai.chat.completions.create({
         model: llmModel,
         temperature,
@@ -71,29 +99,6 @@ export async function POST(req: Request) {
         },
       });
     }
-
-    const response = await groq.chat.completions.create({
-      messages,
-      model: llmModel,
-      temperature,
-      max_tokens: maxTokens,
-      top_p: 0.8,
-      seed: 10,
-      stop: null, // ", 6",
-      stream: false, // Assuming streaming is not necessary
-    });
-
-    // Check response structure and serialize as needed
-    const textResponse = JSON.stringify(response.choices[0]?.message?.content); // Convert the response to a JSON string if it's an object
-
-    return new NextResponse(textResponse, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-LLM-Start': `${start}`,
-        'X-LLM-Response': `${Date.now()}`,
-      },
-    });
   } catch (error) {
     console.error('Error processing the request:', error);
     return new NextResponse(error || error?.message, {
