@@ -9,7 +9,6 @@ import { promptData } from './prompts';
 
 import { systemContent } from '@/app/lib/constants';
 import { generateRandomString } from '@/app/lib/helpers';
-import { llmModels } from '@/app/context/LLM';
 
 // Optional, but recommended: run on the edge runtime.
 // See https://vercel.com/docs/concepts/functions/edge-functions
@@ -23,13 +22,9 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-function isOpenAi(llmModel: string) {
-  return llmModel.includes('gpt');
-}
-
 export async function POST(req: Request) {
   const data = await req.json();
-  const { messages: dataMessages, llmModel, temperature, maxTokens, promptId, templateVars } = data;
+  const { messages: dataMessages, llmModel, temperature, maxTokens, promptId, templateVars, llmProvider } = data;
 
   const start = Date.now();
 
@@ -54,8 +49,6 @@ export async function POST(req: Request) {
   console.log('LLM in use:', llmModel);
 
   try {
-    const llmProvider = Object.values(llmModels).find((m) => m.llmModel === llmModel).llmProvider;
-
     if (llmProvider === 'meta') {
       const response = await groq.chat.completions.create({
         messages,
