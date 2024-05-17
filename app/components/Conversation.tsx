@@ -62,7 +62,7 @@ export default function Conversation() {
   /**
    * Refs
    */
-  const messageMarker = useRef<null | HTMLDivElement>(null);
+  const chatBottomRef = useRef<null | HTMLDivElement>(null);
   const activeAssistantResponse = useRef<boolean>(false);
   const activeUserResponse = useRef<boolean>(false);
 
@@ -536,8 +536,8 @@ export default function Conversation() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (messageMarker.current) {
-        messageMarker.current.scrollIntoView({
+      if (chatBottomRef.current) {
+        chatBottomRef.current.scrollIntoView({
           behavior: 'smooth', // Changed to 'smooth' for a better visual effect
           block: 'end', // Ensures the bottom of the element is aligned to the visible area
         });
@@ -583,8 +583,8 @@ export default function Conversation() {
                 )}
 
                 <div
-                  className="h-16 col-start-1 col-end-13 responsive-hide"
-                  ref={messageMarker}
+                  className="h-4 md:h-16 col-start-1 col-end-13"
+                  ref={chatBottomRef}
                 />
               </div>
             </div>
