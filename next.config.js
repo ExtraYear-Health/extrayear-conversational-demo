@@ -1,19 +1,4 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//   webpack(config) {
-//     config.module.rules.push({
-//       test: /\.svg$/,
-//       use: ["@svgr/webpack"],
-//     });
-
-//     return config;
-//   },
-//   reactStrictMode: false,
-// };
-
-// module.exports = nextConfig;
-
-/** @type {import('next').NextConfig} */
+/* eslint-disable @typescript-eslint/no-var-requires */
 const CopyPlugin = require('copy-webpack-plugin');
 
 const wasmPaths = [
@@ -28,11 +13,17 @@ const wasmPaths = [
   './node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js',
 ];
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
   webpack(config) {
+    config.module.rules.push({
+      test: /\.md$/,
+      use: 'raw-loader',
+    });
+
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
@@ -50,7 +41,7 @@ const nextConfig = {
           from: p,
           to: 'static/chunks/app',
         })),
-      })
+      }),
     );
 
     // vercel
@@ -60,7 +51,7 @@ const nextConfig = {
           from: p,
           to: 'static/chunks',
         })),
-      })
+      }),
     );
 
     return config;
