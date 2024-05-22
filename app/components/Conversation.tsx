@@ -21,6 +21,7 @@ import { useDeepgram, voiceMap } from '../context/Deepgram';
 import { useMessageData } from '../context/MessageMetadata';
 import { useMicrophone } from '../context/Microphone';
 import { useAudioStore } from '../context/AudioStore';
+import { useCobraVAD } from '../lib/picovoice';
 
 import { RightBubble } from './RightBubble';
 import { Controls } from './Controls';
@@ -282,14 +283,19 @@ export default function Conversation() {
     }
   }, [microphoneOpen, player, stopAudio]);
 
-  useMicVAD({
-    startOnLoad: true,
-    stream,
-    onSpeechStart,
+  // useMicVAD({
+  //   startOnLoad: true,
+  //   stream,
+  //   onSpeechStart,
+  //   onSpeechEnd,
+  //   onVADMisfire,
+  //   positiveSpeechThreshold: 0.6,
+  //   negativeSpeechThreshold: 0.6 - 0.15,
+  // });
+
+  useCobraVAD({
     onSpeechEnd,
-    onVADMisfire,
-    positiveSpeechThreshold: 0.6,
-    negativeSpeechThreshold: 0.6 - 0.15,
+    onSpeechStart,
   });
 
   useEffect(() => {
