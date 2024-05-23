@@ -17,6 +17,8 @@
     "@langchain/groq": "^0.0.8",
     "@next/third-parties": "^14.1.0",
     "@nextui-org/react": "^2.2.10",
+    "@picovoice/cobra-web": "^2.0.3",
+    "@picovoice/web-voice-processor": "^4.0.9",
     "@ricky0123/vad-react": "^0.0.22",
     "@svgr/webpack": "^8.1.0",
     "@types/audioworklet": "^0.0.53",
