@@ -3,13 +3,14 @@ import { articleConversationContent } from '../../prompts/articleConversation';
 import { voyager1ConversationContent } from '../../prompts/voyager1Conversation';
 import { newsArticleConversationContent } from '../../prompts/newsArticlesConversation';
 import { checkMessagePromptContent } from '../../prompts/checkMessage';
-import { londonMarathonArticleConversation } from '../../prompts/londonMarathonArticleConversation';
 import { cityGuessTen } from '../../prompts/cityGuessTen';
 import { icebreakerFriends } from '../../prompts/icebreakerFriends';
 import { chooseAdverntureMysteryInLocation } from '../../prompts/chooseAdverntureMysteryInLocation';
 import { storyCubes01 } from '../../prompts/storyCubes01';
 import { movieConversation } from '../../prompts/movieConversation';
 import { currentEventsConversation } from '../../prompts/currentEventsConversation';
+import { londonMarathonArticleConversation } from '../../prompts/londonMarathonArticleConversation';
+import mdExample from '../../prompts/md-example.md';
 
 export interface PromptConfig {
   id: string;
@@ -64,4 +65,10 @@ export const promptData: Record<string, PromptConfig> = {
     text: currentEventsConversation,
   },
   // Additional prompts can be added here
+  mdExample: {
+    id: 'mdExample',
+    title: 'Just an example of using markdown syntax',
+    description: '',
+    text: mdExample,
+  },
 };

@@ -81,29 +81,14 @@ export default function Conversation() {
       const start = Date.now();
       const model = state.ttsOptions?.model ?? 'aura-asteria-en'; // Default model fallback
 
-      let res: Response | null = null;
       try {
         // Request audio generation based on the TTS provider set in the state
-        if (state.ttsOptions?.ttsProvider === 'deepgram') {
-          res = await fetch(`/api/speak?model=${model}`, {
-            cache: 'no-store',
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(message),
-          });
-        } else if (state.ttsOptions?.ttsProvider === 'elevenlabs') {
-          res = await fetch('/api/natural-speak', {
-            cache: 'no-store',
-            method: 'POST',
-            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
-          });
-        } else if (state.ttsOptions?.ttsProvider === 'azure') {
-          res = await fetch('/api/azureSpeak', {
-            cache: 'no-store',
-            method: 'POST',
-            body: JSON.stringify({ message: message, voiceId: state.ttsOptions?.voiceId }),
-          });
-        }
+        const res: Response | null = await fetch(`/api/speak?model=${model}`, {
+          cache: 'no-store',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message),
+        });
 
         // Check response validity and log any failures
         if (!res || !res.ok) {
