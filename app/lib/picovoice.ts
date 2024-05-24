@@ -21,7 +21,7 @@ export function useCobraVAD({
 
   const timer = useTimer({
     autostart: false,
-    endTime: 4, // after n seconds of silence, speech will be considered ended
+    endTime: 3, // after n seconds of silence, speech will be considered ended
     initialTime: 0,
     onTimeOver() {
       console.log('[CobraVAD] Speech has ended after 3s of silence.');
@@ -29,6 +29,14 @@ export function useCobraVAD({
       onSpeechEnd();
     },
   });
+
+  useEffect(() => {
+    if (isVoiceSpeaking && !isSpeechOngoing.current) {
+      console.log('[CobraVAD] Speech has started.');
+      isSpeechOngoing.current = true;
+      onSpeechStart();
+    }
+  }, [isVoiceSpeaking, onSpeechStart]);
 
   useEffect(() => {
     if (isSpeechOngoing.current) {
@@ -56,12 +64,6 @@ export function useCobraVAD({
           if (voiceProbability <= 0.9) {
             setIsVoiceSpeaking(false);
             return;
-          }
-
-          if (!isSpeechOngoing.current) {
-            console.log('[CobraVAD] Speech has started.');
-            onSpeechStart();
-            isSpeechOngoing.current = true;
           }
           setIsVoiceSpeaking(true);
         });
