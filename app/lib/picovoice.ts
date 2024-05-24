@@ -61,11 +61,8 @@ export function useCobraVAD({
     async function init() {
       try {
         const cobra = await CobraWorker.create(accessKey, (voiceProbability: number) => {
-          if (voiceProbability <= 0.9) {
-            setIsVoiceSpeaking(false);
-            return;
-          }
-          setIsVoiceSpeaking(true);
+          const likelyHumanVoice = voiceProbability > 0.9;
+          setIsVoiceSpeaking(likelyHumanVoice);
         });
 
         await WebVoiceProcessor.subscribe(cobra);
