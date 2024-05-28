@@ -1,7 +1,8 @@
-import { LiveTranscriptionEvent } from "@deepgram/sdk";
-import { Message } from "ai/react";
-import moment from "moment";
-import { greetings } from "./constants";
+import { LiveTranscriptionEvent } from '@deepgram/sdk';
+import { Message } from 'ai/react';
+import moment from 'moment';
+
+import { greetings } from './constants';
 
 /**
  * get the sentence from a LiveTranscriptionEvent
@@ -9,10 +10,8 @@ import { greetings } from "./constants";
  * @returns {string}
  */
 const utteranceText = (event: LiveTranscriptionEvent) => {
-  console.log(event);
   const words = event.channel.alternatives[0].words;
-  // console.log(words);
-  return words.map((word: any) => word.punctuated_word ?? word.word).join(" ");
+  return words.map((word: any) => word.punctuated_word ?? word.word).join(' ');
 };
 
 /**
@@ -21,7 +20,7 @@ const utteranceText = (event: LiveTranscriptionEvent) => {
  * @returns {any[]}
  */
 const getUserMessages = (messages: Message[]) => {
-  return messages.filter((message) => message.role === "user");
+  return messages.filter((message) => message.role === 'user');
 };
 
 /**
@@ -30,18 +29,18 @@ const getUserMessages = (messages: Message[]) => {
  * @returns {any[]}
  */
 const getConversationMessages = (messages: Message[]) => {
-  return messages.filter((message) => message.role !== "system");
+  return messages.filter((message) => message.role !== 'system');
 };
 
 const sprintf = (template: string, ...args: any[]) => {
   return template.replace(/%[sdf]/g, (match: any) => {
     const arg = args.shift();
     switch (match) {
-      case "%s":
+      case '%s':
         return String(arg);
-      case "%d":
+      case '%d':
         return parseInt(arg, 10).toString();
-      case "%f":
+      case '%f':
         return parseFloat(arg).toString();
       default:
         return match;
@@ -68,30 +67,30 @@ function contextualHello(): string {
   const hour = moment().hour();
 
   if (hour > 3 && hour <= 12) {
-    return "Good morning";
+    return 'Good morning';
   } else if (hour > 12 && hour <= 15) {
-    return "Good afternoon";
+    return 'Good afternoon';
   } else if (hour > 15 && hour <= 20) {
-    return "Good evening";
+    return 'Good evening';
   } else if (hour > 20 || hour <= 3) {
-    return "You're up late";
+    return 'You\'re up late';
   } else {
-    return "Hello";
+    return 'Hello';
   }
 };
 
 /**
  * Generate random string of alphanumerical characters.
- * 
+ *
  * @param {number} length this is the length of the string to return
  * @returns {string}
  */
 function generateRandomString(length: number): string {
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
 
   for (let i = 0; i < length; i++) {
-    let randomChar = characters.charAt(Math.floor(Math.random() * characters.length));
+    const randomChar = characters.charAt(Math.floor(Math.random() * characters.length));
     result += randomChar;
   }
 
@@ -102,7 +101,7 @@ function generateRandomString(length: number): string {
 
 /**
  * Splits the input string into an array of non-empty lines.
- * 
+ *
  * @param {string} text This is the text to be split into lines.
  * @returns {string[]} Returns an array of non-empty strings, each representing a line from the input string.
  */
@@ -118,9 +117,9 @@ function promptTextArray(text: string): string[] {
  * @returns {string|null} The extracted intro content, or null if no intro section is found.
  */
 function extractIntroContent(content: string): string | null {
-  const introRegex = /<intro>(.*?)<\/intro>/s;  // Use the 's' flag for dotAll, allowing '.' to match newline characters
+  const introRegex = /<intro>(.*?)<\/intro>/s; // Use the 's' flag for dotAll, allowing '.' to match newline characters
   const match = content.match(introRegex);
-  return match ? match[1].trim() : null;  // Return the captured group if the pattern matches
+  return match ? match[1].trim() : null; // Return the captured group if the pattern matches
 };
 
 /**
@@ -137,7 +136,6 @@ function extractResponseText(inputString) {
   return match ? match[1].trim() : null;
 }
 
-
 /**
  * Cleans an input string by removing quotes and brackets from its beginning and end, and replaces internal newlines.
  * @param {string} inputString The text content to be cleaned.
@@ -149,7 +147,7 @@ function cleanString(inputString: string): string {
 
   // Replace any remaining single newlines with a period
   inputString = inputString.replace(/\\n/g, '. ');
-  
+
   // First replace ":." with "."
   inputString = inputString.replace(/:\./g, '.');
   // Then replace any ".." with "."
@@ -158,10 +156,9 @@ function cleanString(inputString: string): string {
   // Remove multiple quotes from the beginning of the string
   inputString = inputString.replace(/^['"]+|['"]+$/g, '');
   inputString = inputString.replace(/^[\(\)\[\]\{\}]+|[\(\)\[\]\{\}]+$/g, '');
-  
+
   return inputString;
 }
-
 
 export {
   generateRandomString,

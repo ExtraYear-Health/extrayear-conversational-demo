@@ -86,7 +86,7 @@ const initialState: DeepgramState = {
     interim_results: true,
     smart_format: true,
     endpointing: 550,
-    utterance_end_ms: 1000,
+    utterance_end_ms: 4000,
     filler_words: true,
   },
 };
