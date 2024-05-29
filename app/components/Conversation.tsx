@@ -554,8 +554,9 @@ export default function Conversation() {
       <div className="flex flex-col h-full w-full">
         <Header
           avatarImage={assistant.avatar}
-          name={assistant.name}
+          isTyping={llmLoading}
           job="Cognitive Therapist"
+          name={assistant.name}
         />
         <div className="flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto">
