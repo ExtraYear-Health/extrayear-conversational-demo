@@ -66,6 +66,7 @@ export default function Conversation() {
    * Refs
    */
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
+  const lastLlmMessageHasBeenCleaned = useRef<boolean>(false);
 
   /**
    * State
@@ -111,7 +112,6 @@ export default function Conversation() {
             model,
           });
 
-          // Restart the microphone after audio ends if the player exists
           if (player) {
             player.onended = () => {
               clearTranscriptParts();
@@ -130,13 +130,16 @@ export default function Conversation() {
   );
 
   // An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback(
-    (message: Message) => {
-      message.content = cleanString(message.content); // hack way to remove excess characters before TTS.
-      requestTtsAudio(message);
-    },
-    [requestTtsAudio],
-  );
+  const onFinish = useCallback((rawMessage: Message) => {
+    lastLlmMessageHasBeenCleaned.current = false;
+
+    const message: Message = {
+      ...rawMessage,
+      content: cleanString(rawMessage.content),
+    };
+
+    requestTtsAudio(message);
+  }, [requestTtsAudio]);
 
   // An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging
   const onResponse = useCallback((res: Response) => {
@@ -195,7 +198,6 @@ export default function Conversation() {
   const appendUserSpeechMessage = useCallback(async (inputString) => {
     console.log('append user message');
 
-    // stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
     await append({
       role: 'user',
       content: inputString,
@@ -221,30 +223,32 @@ export default function Conversation() {
   });
 
   useEffect(() => {
-    if (llmLoading) {
+    if (llmLoading || !state.llmLatency || lastLlmMessageHasBeenCleaned.current) {
       return;
     }
-    if (!state.llmLatency) return;
 
-    // Remove extra characters from LLM response.
-    // clean string is a hack way to remove extra characters from the LLM response.
-    chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
+    // Hack way to remove extra characters from the LLM response.
+    const messages = chatMessages.map((message, index) => {
+      if (index === chatMessages.length - 1) {
+        return {
+          ...message,
+          content: cleanString(message.content),
+        };
+      }
+      return message;
+    });
+
+    setMessages(messages);
+    lastLlmMessageHasBeenCleaned.current = true;
 
     const latestLlmMessage: MessageMetadata = {
-      ...chatMessages[chatMessages.length - 1],
+      ...messages.at(-1),
       ...state.llmLatency,
       end: Date.now(),
       ttsModel: state.ttsOptions?.model,
     };
-
     addMessageData(latestLlmMessage);
-  }, [
-    chatMessages,
-    state.llmLatency, // Update dependency to use state from context
-    llmLoading,
-    addMessageData,
-    state.ttsOptions?.model, // Update dependency to use state from context
-  ]);
+  }, [addMessageData, chatMessages, llmLoading, setMessages, state.llmLatency, state.ttsOptions?.model]);
 
   /**
    * Contextual functions
@@ -269,17 +273,11 @@ export default function Conversation() {
     requestTtsAudio(greetingMessage); // request welcome audio
 
     // add a stub message data with no latency
-    const promptMetadata: MessageMetadata = {
-      ttsModel: state.ttsOptions?.model,
-    };
-
-    // add a stub message data with no latency
     const welcomeMetadata: MessageMetadata = {
       ...greetingMessage,
       ttsModel: state.ttsOptions?.model,
     };
 
-    addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
   }, [addMessageData, assistant.name, initialLoad, requestTtsAudio, setMessages, startMicrophone, state.selectedPromptId, state.ttsOptions?.model]);
 
