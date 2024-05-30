@@ -407,7 +407,7 @@ export default function Conversation() {
     }, 100); // Adding a small delay to ensure the DOM has updated
 
     return () => clearTimeout(timeoutId); // Cleanup to avoid unintended scrolls
-  }, [chatMessages]);
+  }, [chatMessages, currentUtterance]);
 
   if (initialLoad) {
     return (
