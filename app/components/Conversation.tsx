@@ -206,6 +206,7 @@ export default function Conversation() {
 
   const { isSpeeching } = useCobraVAD({
     listening: microphoneOpen,
+    voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
     silenceThresholdMs: state.sttOptions.utterance_end_ms,
     onSpeechStart() {
       if (!player?.ended) {

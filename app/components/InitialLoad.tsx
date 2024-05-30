@@ -121,6 +121,30 @@ const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) 
   );
 };
 
+const VadProbThresholdSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+  const options = [
+    { value: 0.7, label: '70%' },
+    { value: 0.8, label: '80%' },
+    { value: 0.9, label: '90%' },
+  ];
+
+  return (
+    <Select
+      value={value?.toString()}
+      selectedKeys={value ? [value?.toString()] : []}
+      onChange={(e) => onChange(Number(e.target.value))}
+      label="Voice Prob. Threshold (%)"
+      variant="bordered"
+    >
+      {options.map((option) => (
+        <SelectItem key={option.value} value={option.value}>
+          {option.label}
+        </SelectItem>
+      ))}
+    </Select>
+  );
+};
+
 interface InitialLoadProps {
   onSubmit: () => void;
   connecting: boolean;
@@ -133,13 +157,14 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
     llm,
     selectedPromptId,
     ttsOptions: { model: voiceModel },
-    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined
+    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined.
+    vadOptions: { voiceProbThreshold },
   } = state;
 
   // TODO: refactor context state so we can use llmModel directly
   const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput);
+  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput) || !voiceProbThreshold;
 
   return (
     <>
@@ -196,6 +221,18 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
                 onChange={(value) => {
                   dispatch({
                     type: 'SET_UTTERANCE_END_MS',
+                    payload: value,
+                  });
+                }}
+              />
+            </div>
+
+            <div className="my-2 5">
+              <VadProbThresholdSelection
+                value={voiceProbThreshold}
+                onChange={(value) => {
+                  dispatch({
+                    type: 'SET_VAD_VOICE_PROB_THRESHOLD',
                     payload: value,
                   });
                 }}

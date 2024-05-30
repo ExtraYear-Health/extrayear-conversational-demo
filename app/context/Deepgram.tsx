@@ -30,6 +30,7 @@ type DeepgramAction =
   | { type: 'SET_TTS_OPTIONS'; payload: SpeakSchema | undefined; }
   | { type: 'SET_STT_OPTIONS'; payload: LiveSchema | undefined; }
   | { type: 'SET_UTTERANCE_END_MS'; payload: number; }
+  | { type: 'SET_VAD_VOICE_PROB_THRESHOLD'; payload: number; }
   | { type: 'SET_LLM_LATENCY'; payload: { start: number; response: number; }; }
   | { type: 'SET_API_KEY'; payload: string | undefined; }
   | { type: 'SET_LLM'; payload: string | undefined; }
@@ -50,6 +51,9 @@ type DeepgramState = {
   isLoadingKey: boolean;
   llm?: LLMModelConfig | undefined;
   selectedPromptId?: string;
+  vadOptions?: {
+    voiceProbThreshold?: number;
+  };
 };
 
 type DeepgramContext = {
@@ -81,6 +85,7 @@ const initialState: DeepgramState = {
     voiceId: voices['ava-en'].voiceId,
   },
 
+  // Speech-to-Text options
   sttOptions: {
     model: 'nova-2',
     interim_results: true,
@@ -88,6 +93,11 @@ const initialState: DeepgramState = {
     endpointing: 550,
     utterance_end_ms: 4000,
     filler_words: true,
+  },
+
+  // Voice Activity Detection options
+  vadOptions: {
+    voiceProbThreshold: 0.7,
   },
 };
 
@@ -136,6 +146,14 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
         sttOptions: state.sttOptions ?
           { ...state.sttOptions, utterance_end_ms: action.payload } :
           { utterance_end_ms: action.payload },
+      };
+    case 'SET_VAD_VOICE_PROB_THRESHOLD':
+      return {
+        ...state,
+        vadOptions: {
+          ...state.vadOptions,
+          voiceProbThreshold: action.payload,
+        },
       };
     case 'SET_LLM_LATENCY':
       return { ...state, llmLatency: action.payload };
