@@ -185,8 +185,6 @@ export default function Conversation() {
 
   // Append user-generated content to the chat.
   const appendUserSpeechMessage = useCallback(async (inputString) => {
-    console.log('append user message');
-
     await append({
       role: 'user',
       content: inputString,
