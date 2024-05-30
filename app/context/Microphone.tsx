@@ -85,6 +85,8 @@ const MicrophoneContextProvider = ({
   }, [microphone]);
 
   const startMicrophone = useCallback(() => {
+    setMicrophoneOpen(true);
+
     if (microphone?.state === 'paused') {
       microphone?.resume();
       return;
@@ -93,20 +95,27 @@ const MicrophoneContextProvider = ({
     if (microphone?.state === 'inactive') {
       microphone?.start(250);
     }
-
-    setMicrophoneOpen(true);
   }, [microphone]);
 
   useEffect(() => {
-    const eventer = () =>
-      document.visibilityState !== 'visible' && stopMicrophone();
-
-    window.addEventListener('visibilitychange', eventer);
-
-    return () => {
-      window.removeEventListener('visibilitychange', eventer);
+    const handleVisibilityChange = () => {
+      switch (document.visibilityState) {
+        case 'hidden':
+          stopMicrophone();
+        case 'visible':
+          if (!microphoneOpen) {
+            startMicrophone();
+          }
+        default:
+          break;
+      }
     };
-  }, [stopMicrophone]);
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [microphoneOpen, startMicrophone, stopMicrophone]);
 
   return (
     <MicrophoneContext.Provider
