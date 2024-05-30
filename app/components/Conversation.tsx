@@ -41,13 +41,10 @@ export default function Conversation() {
 
   const {
     microphoneOpen,
-    queue: microphoneQueue,
     queueSize: microphoneQueueSize,
     firstBlob,
     removeBlob,
-    stream,
     startMicrophone,
-    stopMicrophone,
   } = useMicrophone();
 
   /**
@@ -314,11 +311,17 @@ export default function Conversation() {
     }
   }, [state.connection, state.connectionReady, onTranscript]);
 
+  /**
+   * To gather a full transcript for an utterance, you would need to concatenate all responses marked is_final: true.
+   * https://developers.deepgram.com/docs/understand-endpointing-interim-results#getting-final-transcripts
+   */
   const getCurrentUtterance = useCallback(() => {
-    const filteredParts = transcriptParts.filter(({ isFinal }, i, arr) => {
+    const transcripts = transcriptParts.filter(({ isFinal }, i, arr) => {
       return isFinal || (!isFinal && i === arr.length - 1);
     });
-    return filteredParts;
+
+    const utterance = transcripts.map(({ text }) => text).join(' ').trim();
+    return utterance;
   }, [transcriptParts]);
 
   useEffect(() => {
@@ -326,21 +329,17 @@ export default function Conversation() {
       return;
     }
 
-    const parts = getCurrentUtterance();
-    const content = parts
-      .map(({ text }) => text)
-      .join(' ')
-      .trim();
+    const utterance = getCurrentUtterance();
 
     /**
      * If the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
-    if (!content) {
+    if (!utterance) {
       return;
     }
 
-    setCurrentUtterance(content); // Display the concatenated utterances
+    setCurrentUtterance(utterance);
   }, [isSpeeching, getCurrentUtterance]);
 
   /**

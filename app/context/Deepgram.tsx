@@ -69,7 +69,6 @@ const initialState: DeepgramState = {
   apiKey: undefined, // Holds the API key string
   apiKeyError: undefined, // Holds any error that occurs during API key retrieval
   isLoadingKey: true,
-  // sttOptions: undefined, // Speech-to-Text options
   connection: null, // Represents the LiveClient connection instance
   connecting: false, // Indicates whether the connection process is ongoing
   connectionReady: false, // Indicates whether the connection is established and ready
@@ -90,7 +89,7 @@ const initialState: DeepgramState = {
     model: 'nova-2',
     interim_results: true,
     smart_format: true,
-    endpointing: 550,
+    endpointing: 10,
     utterance_end_ms: 4000,
     filler_words: true,
   },
@@ -133,7 +132,6 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
         ttsOptions: {
           ...state.ttsOptions, // Preserve existing ttsOptions
           model: action.payload.model,
-          // ttsProvider: action.payload.ttsProvider, // Use the provided ttsProvider from action payload
           ttsProvider: voiceConfig.ttsProvider, // Include ttsProvider from voice config
           voiceId: voiceConfig.voiceId, // Add other relevant voice settings here if needed
         },
