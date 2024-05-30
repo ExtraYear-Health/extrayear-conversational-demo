@@ -554,7 +554,7 @@ export default function Conversation() {
       <div className="flex flex-col h-full w-full">
         <Header
           avatarImage={assistant.avatar}
-          isTyping={llmLoading}
+          isResponding={llmLoading}
           job="Cognitive Therapist"
           name={assistant.name}
         />

@@ -4,14 +4,14 @@ import { VerifiedIcon } from '../icons/VerifiedIcon';
 
 export interface HeaderProps {
   avatarImage?: string;
-  isTyping?: boolean;
+  isResponding?: boolean;
   job?: string;
   name?: string;
 }
 
 export function Header({
   avatarImage,
-  isTyping,
+  isResponding,
   job,
   name,
 }: HeaderProps) {
@@ -26,8 +26,8 @@ export function Header({
             </div>
             <VerifiedIcon className="text-primary-500" />
           </div>
-          <div className={`text-xs text-gray-500 dark:text-gray-400 ${isTyping ? 'italic' : ''}`}>
-            {isTyping ? 'recording audio...' : job}
+          <div className={`text-xs text-gray-500 dark:text-gray-400 ${isResponding ? 'italic' : ''}`}>
+            {isResponding ? 'recording audio...' : job}
           </div>
         </div>
       </div>
