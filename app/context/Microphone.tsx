@@ -89,9 +89,7 @@ const MicrophoneContextProvider = ({
 
     if (microphone?.state === 'paused') {
       microphone?.resume();
-      return;
     }
-
     if (microphone?.state === 'inactive') {
       microphone?.start(250);
     }
@@ -99,15 +97,10 @@ const MicrophoneContextProvider = ({
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      switch (document.visibilityState) {
-        case 'hidden':
-          stopMicrophone();
-        case 'visible':
-          if (!microphoneOpen) {
-            startMicrophone();
-          }
-        default:
-          break;
+      if (document.visibilityState === 'hidden') {
+        stopMicrophone();
+      } else if (!microphoneOpen) {
+        startMicrophone();
       }
     };
 
