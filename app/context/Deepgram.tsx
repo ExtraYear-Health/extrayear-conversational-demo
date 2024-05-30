@@ -30,6 +30,7 @@ type DeepgramAction =
   | { type: 'SET_TTS_OPTIONS'; payload: SpeakSchema | undefined; }
   | { type: 'SET_STT_OPTIONS'; payload: LiveSchema | undefined; }
   | { type: 'SET_UTTERANCE_END_MS'; payload: number; }
+  | { type: 'SET_VAD_VOICE_PROB_THRESHOLD'; payload: number; }
   | { type: 'SET_LLM_LATENCY'; payload: { start: number; response: number; }; }
   | { type: 'SET_API_KEY'; payload: string | undefined; }
   | { type: 'SET_LLM'; payload: string | undefined; }
@@ -50,6 +51,9 @@ type DeepgramState = {
   isLoadingKey: boolean;
   llm?: LLMModelConfig | undefined;
   selectedPromptId?: string;
+  vadOptions?: {
+    voiceProbThreshold?: number;
+  };
 };
 
 type DeepgramContext = {
@@ -65,7 +69,6 @@ const initialState: DeepgramState = {
   apiKey: undefined, // Holds the API key string
   apiKeyError: undefined, // Holds any error that occurs during API key retrieval
   isLoadingKey: true,
-  // sttOptions: undefined, // Speech-to-Text options
   connection: null, // Represents the LiveClient connection instance
   connecting: false, // Indicates whether the connection process is ongoing
   connectionReady: false, // Indicates whether the connection is established and ready
@@ -81,13 +84,19 @@ const initialState: DeepgramState = {
     voiceId: voices['ava-en'].voiceId,
   },
 
+  // Speech-to-Text options
   sttOptions: {
     model: 'nova-2',
     interim_results: true,
     smart_format: true,
-    endpointing: 550,
-    utterance_end_ms: 1000,
+    endpointing: 10,
+    utterance_end_ms: 4000,
     filler_words: true,
+  },
+
+  // Voice Activity Detection options
+  vadOptions: {
+    voiceProbThreshold: 0.7,
   },
 };
 
@@ -123,7 +132,6 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
         ttsOptions: {
           ...state.ttsOptions, // Preserve existing ttsOptions
           model: action.payload.model,
-          // ttsProvider: action.payload.ttsProvider, // Use the provided ttsProvider from action payload
           ttsProvider: voiceConfig.ttsProvider, // Include ttsProvider from voice config
           voiceId: voiceConfig.voiceId, // Add other relevant voice settings here if needed
         },
@@ -136,6 +144,14 @@ function reducer(state: DeepgramState, action: DeepgramAction): DeepgramState {
         sttOptions: state.sttOptions ?
           { ...state.sttOptions, utterance_end_ms: action.payload } :
           { utterance_end_ms: action.payload },
+      };
+    case 'SET_VAD_VOICE_PROB_THRESHOLD':
+      return {
+        ...state,
+        vadOptions: {
+          ...state.vadOptions,
+          voiceProbThreshold: action.payload,
+        },
       };
     case 'SET_LLM_LATENCY':
       return { ...state, llmLatency: action.payload };

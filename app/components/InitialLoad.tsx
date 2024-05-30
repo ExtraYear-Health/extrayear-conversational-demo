@@ -121,6 +121,36 @@ const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) 
   );
 };
 
+const VadProbThresholdSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+  const options = [
+    { value: 0.1, label: '10%' },
+    { value: 0.2, label: '20%' },
+    { value: 0.3, label: '30%' },
+    { value: 0.4, label: '40%' },
+    { value: 0.5, label: '50%' },
+    { value: 0.6, label: '60%' },
+    { value: 0.7, label: '70%' },
+    { value: 0.8, label: '80%' },
+    { value: 0.9, label: '90%' },
+  ];
+
+  return (
+    <Select
+      value={value?.toString()}
+      selectedKeys={value ? [value?.toString()] : []}
+      onChange={(e) => onChange(Number(e.target.value))}
+      label="Voice Prob. Threshold (%)"
+      variant="bordered"
+    >
+      {options.map((option) => (
+        <SelectItem key={option.value} value={option.value}>
+          {option.label}
+        </SelectItem>
+      ))}
+    </Select>
+  );
+};
+
 interface InitialLoadProps {
   onSubmit: () => void;
   connecting: boolean;
@@ -133,92 +163,103 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
     llm,
     selectedPromptId,
     ttsOptions: { model: voiceModel },
-    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined
+    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined.
+    vadOptions: { voiceProbThreshold },
   } = state;
 
   // TODO: refactor context state so we can use llmModel directly
   const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput);
+  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput) || !voiceProbThreshold;
 
   return (
-    <>
-      <div className="col-start-1 col-end-13 sm:col-start-2 sm:col-end-12 md:col-start-3 md:col-end-11 lg:col-start-4 lg:col-end-10 p-3 mb-1/2">
-        <div className="relative block w-full glass p-6 sm:p-8 lg:p-12 rounded-xl">
-          <h2 className="font-favorit mt-2 block font-bold text-xl text-gray-100 text-center">
-            Welcome to ExtraYear&apos;s
-            <br />
-            Cognitive Rehab Tech Demo
-          </h2>
-          <div className="flex justify-center mt-4">
-            <p className="text-center text-default-400">Conversations for Cognitive Health</p>
+    <div className="col-start-1 col-end-13 sm:col-start-2 sm:col-end-12 md:col-start-3 md:col-end-11 lg:col-start-4 lg:col-end-10 p-3 mb-1/2">
+      <div className="relative block w-full glass p-6 sm:p-8 lg:p-12 rounded-xl">
+        <h2 className="font-favorit mt-2 block font-bold text-xl text-gray-100 text-center">
+          Welcome to ExtraYear&apos;s
+          <br />
+          Cognitive Rehab Tech Demo
+        </h2>
+        <div className="flex justify-center mt-4">
+          <p className="text-center text-default-400">Conversations for Cognitive Health</p>
+        </div>
+        <div className="mt-6">
+          <div className="my-2.5">
+            <LLMModelSelection
+              value={llmModel}
+              onChange={(value) => {
+                dispatch({
+                  type: 'SET_LLM',
+                  payload: value,
+                });
+              }}
+            />
           </div>
-          <div className="mt-6">
-            <div className="my-2.5">
-              <LLMModelSelection
-                value={llmModel}
-                onChange={(value) => {
-                  dispatch({
-                    type: 'SET_LLM',
-                    payload: value,
-                  });
-                }}
-              />
-            </div>
-            <div className="my-2.5">
-              <PromptSelection
-                value={selectedPromptId}
-                onChange={(value) => {
-                  dispatch({
-                    type: 'SET_PROMPT',
-                    payload: value, // Make sure this variable holds the prompt ID or relevant identifier
-                  });
-                }}
-              />
-            </div>
-            <div className="my-2.5">
-              <VoiceAssistantSelect
-                value={voiceModel}
-                onChange={(value) => {
-                  dispatch({
-                    type: 'SET_TTS_OPTIONS',
-                    payload: {
-                      model: value,
-                      provider: voices[value].ttsProvider,
-                    },
-                  });
-                }}
-              />
-            </div>
-            <div className="my-2.5">
-              <UtteranceEndMsSelection
-                value={utteranceEndMsInput}
-                onChange={(value) => {
-                  dispatch({
-                    type: 'SET_UTTERANCE_END_MS',
-                    payload: value,
-                  });
-                }}
-              />
-            </div>
+          <div className="my-2.5">
+            <PromptSelection
+              value={selectedPromptId}
+              onChange={(value) => {
+                dispatch({
+                  type: 'SET_PROMPT',
+                  payload: value, // Make sure this variable holds the prompt ID or relevant identifier
+                });
+              }}
+            />
+          </div>
+          <div className="my-2.5">
+            <VoiceAssistantSelect
+              value={voiceModel}
+              onChange={(value) => {
+                dispatch({
+                  type: 'SET_TTS_OPTIONS',
+                  payload: {
+                    model: value,
+                    provider: voices[value].ttsProvider,
+                  },
+                });
+              }}
+            />
+          </div>
+          <div className="my-2.5">
+            <UtteranceEndMsSelection
+              value={utteranceEndMsInput}
+              onChange={(value) => {
+                dispatch({
+                  type: 'SET_UTTERANCE_END_MS',
+                  payload: value,
+                });
+              }}
+            />
+          </div>
 
-            <Button
-              className="mt-4 disabled"
-              color="primary"
-              isDisabled={disableButton}
-              fullWidth
-              isLoading={connecting}
-              onClick={onSubmit}
-              size="lg"
-              startContent={connecting && (
-                <Spinner size="sm" />
-              )}
-            >
-              {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`}
-            </Button>
+          <div className="my-2 5">
+            <VadProbThresholdSelection
+              value={voiceProbThreshold}
+              onChange={(value) => {
+                dispatch({
+                  type: 'SET_VAD_VOICE_PROB_THRESHOLD',
+                  payload: value,
+                });
+              }}
+            />
           </div>
+
+          <Button
+            className="mt-4 disabled"
+            color="primary"
+            isDisabled={disableButton}
+            fullWidth
+            isLoading={connecting}
+            onClick={onSubmit}
+            size="lg"
+            startContent={connecting && (
+              <Spinner size="sm" />
+            )}
+          >
+            {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`}
+          </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 };

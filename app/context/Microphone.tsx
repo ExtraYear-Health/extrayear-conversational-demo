@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useQueue } from "@uidotdev/usehooks";
+import { useQueue } from '@uidotdev/usehooks';
 import {
   Dispatch,
   SetStateAction,
@@ -9,7 +9,7 @@ import {
   useContext,
   useEffect,
   useState,
-} from "react";
+} from 'react';
 
 type MicrophoneContext = {
   microphone: MediaRecorder | undefined;
@@ -58,7 +58,6 @@ const MicrophoneContextProvider = ({
       setStream(stream);
 
       const microphone = new MediaRecorder(stream);
-
       setMicrophone(microphone);
     }
 
@@ -80,15 +79,18 @@ const MicrophoneContextProvider = ({
   }, [enqueueBlob, microphone, microphoneOpen]);
 
   const stopMicrophone = useCallback(() => {
-    if (microphone?.state === "recording") microphone?.pause();
+    if (microphone?.state === 'recording') microphone?.pause();
 
     setMicrophoneOpen(false);
   }, [microphone]);
 
   const startMicrophone = useCallback(() => {
-    if (microphone?.state === "paused") {
+    if (microphone?.state === 'paused') {
       microphone?.resume();
-    } else {
+      return;
+    }
+
+    if (microphone?.state === 'inactive') {
       microphone?.start(250);
     }
 
@@ -97,12 +99,12 @@ const MicrophoneContextProvider = ({
 
   useEffect(() => {
     const eventer = () =>
-      document.visibilityState !== "visible" && stopMicrophone();
+      document.visibilityState !== 'visible' && stopMicrophone();
 
-    window.addEventListener("visibilitychange", eventer);
+    window.addEventListener('visibilitychange', eventer);
 
     return () => {
-      window.removeEventListener("visibilitychange", eventer);
+      window.removeEventListener('visibilitychange', eventer);
     };
   }, [stopMicrophone]);
 

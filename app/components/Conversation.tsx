@@ -6,7 +6,6 @@ import {
   LiveTranscriptionEvents,
 } from '@deepgram/sdk';
 import { Message, useChat } from 'ai/react';
-import { useMicVAD } from '@ricky0123/vad-react';
 import { useNowPlaying } from 'react-nowplaying';
 import { useQueue } from '@uidotdev/usehooks';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -21,7 +20,7 @@ import { useDeepgram, voiceMap } from '../context/Deepgram';
 import { useMessageData } from '../context/MessageMetadata';
 import { useMicrophone } from '../context/Microphone';
 import { useAudioStore } from '../context/AudioStore';
-import { useCobraVAD } from '../lib/picovoice';
+import { useCobraVAD } from '../lib/picovoice/useCobraVAD';
 
 import { RightBubble } from './RightBubble';
 import { Controls } from './Controls';
@@ -42,13 +41,10 @@ export default function Conversation() {
 
   const {
     microphoneOpen,
-    queue: microphoneQueue,
     queueSize: microphoneQueueSize,
     firstBlob,
     removeBlob,
-    stream,
     startMicrophone,
-    stopMicrophone,
   } = useMicrophone();
 
   /**
@@ -58,14 +54,16 @@ export default function Conversation() {
     add: addTranscriptPart,
     queue: transcriptParts,
     clear: clearTranscriptParts,
-  } = useQueue<{ is_final: boolean; speech_final: boolean; text: string; }>([]);
+  } = useQueue<{
+    isFinal: boolean;
+    text: string;
+  }>([]);
 
   /**
    * Refs
    */
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
-  const activeAssistantResponse = useRef<boolean>(false);
-  const activeUserResponse = useRef<boolean>(false);
+  const lastLlmMessageHasBeenCleaned = useRef<boolean>(false);
 
   /**
    * State
@@ -98,10 +96,10 @@ export default function Conversation() {
         }
 
         const blob = await res.blob();
-        stopMicrophone();
 
         // Calculate the latency and play the received TTS audio
         const latency = Number(res.headers.get('X-DG-Latency')) ?? Date.now() - start;
+
         startAudio(blob, 'audio/mp3', message.id).then(() => {
           addAudio({
             id: message.id,
@@ -110,17 +108,6 @@ export default function Conversation() {
             networkLatency: Date.now() - start,
             model,
           });
-
-          // Restart the microphone after audio ends if the player exists
-          if (player) {
-            player.onended = () => {
-              activeAssistantResponse.current = false;
-              clearTranscriptParts();
-              startMicrophone();
-            };
-          } else {
-            console.error('Player is undefined');
-          }
         });
       } catch (error) {
         // Log and optionally handle errors more explicitly
@@ -128,17 +115,20 @@ export default function Conversation() {
       }
     },
     // Dependencies for useCallback to ensure the function updates when necessary
-    [state.ttsOptions, addAudio, startAudio, stopMicrophone, startMicrophone, player],
+    [addAudio, startAudio, state.ttsOptions?.model, state.ttsOptions?.ttsProvider],
   );
 
   // An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback(
-    (msg: any) => {
-      msg.content = cleanString(msg.content); // hack way to remove excess characters before TTS.
-      requestTtsAudio(msg);
-    },
-    [requestTtsAudio],
-  );
+  const onFinish = useCallback((rawMessage: Message) => {
+    lastLlmMessageHasBeenCleaned.current = false;
+
+    const message: Message = {
+      ...rawMessage,
+      content: cleanString(rawMessage.content),
+    };
+
+    requestTtsAudio(message);
+  }, [requestTtsAudio]);
 
   // An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging
   const onResponse = useCallback((res: Response) => {
@@ -191,123 +181,65 @@ export default function Conversation() {
   });
 
   const [currentUtterance, setCurrentUtterance] = useState<string>();
-  const [failsafeTriggered, setFailsafeTriggered] = useState<boolean>(false);
-  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const currentUtteranceRef = useRef<string>();
   const eventListenerAdded = useRef<boolean>(false); // used to protect against multiple event listeners being added
-  const [utteranceEnded, setUtteranceEnded] = useState<boolean>(false);
-
-  // Update the ref whenever currentUtterance changes
-  useEffect(() => {
-    currentUtteranceRef.current = currentUtterance;
-  }, [currentUtterance]);
-
-  const onVADMisfire = useCallback(() => {
-    console.log('VAD Misfire. Disaster!');
-  }, []);
-
-  // Utility function to clear timeouts
-  const clearFailsafeTimeout = () => {
-    if (failsafeTimeoutRef.current) {
-    // console.log('timeout cleared'); //debug
-      clearTimeout(failsafeTimeoutRef.current);
-      failsafeTimeoutRef.current = null;
-      setFailsafeTriggered(false); // ensure that the failsafe is turned off if we are receiving transcripts
-    }
-  };
 
   // Append user-generated content to the chat.
-  const appendUserSpeechMessage = useCallback((inputString) => {
-    if (activeUserResponse.current) {
-      console.log('append user message');
-      setUtteranceEnded(false);
-      stopMicrophone(); // stop the microphone now. The microphone will start again after TTS plays.
-      activeAssistantResponse.current = true; // appending the user message automatically starts the LLM response.
-      activeUserResponse.current = false; // this flag prevents another message being appended until onSpeechStart runs again.
-      append({
-        role: 'user',
-        content: inputString,
-      });
-    }
-  }, [append, stopMicrophone]);
+  const appendUserSpeechMessage = useCallback(async (inputString) => {
+    console.log('append user message');
 
-  const setupFailsafeTimeout = useCallback(() => {
-    const failsafeAction = () => {
-      const utterance = currentUtteranceRef.current;
-      if (utterance) {
-        console.log('failsafe fires! pew pew!!');
-        setFailsafeTriggered(true);
-        appendUserSpeechMessage(utterance);
+    await append({
+      role: 'user',
+      content: inputString,
+    });
+  }, [append]);
+
+  const { isSpeeching } = useCobraVAD({
+    listening: microphoneOpen,
+    voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
+    silenceThresholdMs: state.sttOptions.utterance_end_ms,
+    onSpeechStart() {
+      clearTranscriptParts();
+      if (!player?.ended) {
+        stopAudio();
+      }
+    },
+    onSpeechEnd() {
+      if (currentUtterance) {
+        console.log('Send message to LLM');
+        appendUserSpeechMessage(currentUtterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
-        setUtteranceEnded(false);
-        currentUtteranceRef.current = undefined; // Reset the ref
       }
-    };
-    // Clear any existing timeout before setting a new one
-    clearFailsafeTimeout();
-    // Set the new failsafe timeout
-    failsafeTimeoutRef.current = setTimeout(failsafeAction, state.sttOptions.utterance_end_ms + 500);
-  }, [state.sttOptions.utterance_end_ms, appendUserSpeechMessage, clearTranscriptParts]);
-
-  const onSpeechEnd = useCallback(() => {
-    if (!microphoneOpen) return;
-    // console.log('speech end'); //debug
-    setupFailsafeTimeout();
-  }, [microphoneOpen, setupFailsafeTimeout]);
-
-  const onSpeechStart = useCallback(() => {
-    if (!microphoneOpen) return;
-    // console.log('speech start'); //debug
-    activeUserResponse.current = true;
-    clearFailsafeTimeout();
-    setFailsafeTriggered(false);
-    if (player && !player.ended) {
-      stopAudio();
-      console.log('Barging in! SHH!');
-    }
-  }, [microphoneOpen, player, stopAudio]);
-
-  // useMicVAD({
-  //   startOnLoad: true,
-  //   stream,
-  //   onSpeechStart,
-  //   onSpeechEnd,
-  //   onVADMisfire,
-  //   positiveSpeechThreshold: 0.6,
-  //   negativeSpeechThreshold: 0.6 - 0.15,
-  // });
-
-  useCobraVAD({
-    onSpeechEnd,
-    onSpeechStart,
+    },
   });
 
   useEffect(() => {
-    if (llmLoading) {
+    if (llmLoading || !state.llmLatency || lastLlmMessageHasBeenCleaned.current) {
       return;
     }
-    if (!state.llmLatency) return;
 
-    // Remove extra characters from LLM response.
-    // clean string is a hack way to remove extra characters from the LLM response.
-    chatMessages[chatMessages.length - 1].content = cleanString(chatMessages[chatMessages.length - 1].content);
+    // Hack way to remove extra characters from the LLM response.
+    const messages = chatMessages.map((message, index) => {
+      if (index === chatMessages.length - 1) {
+        return {
+          ...message,
+          content: cleanString(message.content),
+        };
+      }
+      return message;
+    });
+
+    setMessages(messages);
+    lastLlmMessageHasBeenCleaned.current = true;
 
     const latestLlmMessage: MessageMetadata = {
-      ...chatMessages[chatMessages.length - 1],
+      ...messages.at(-1),
       ...state.llmLatency,
       end: Date.now(),
       ttsModel: state.ttsOptions?.model,
     };
-
     addMessageData(latestLlmMessage);
-  }, [
-    chatMessages,
-    state.llmLatency, // Update dependency to use state from context
-    llmLoading,
-    addMessageData,
-    state.ttsOptions?.model, // Update dependency to use state from context
-  ]);
+  }, [addMessageData, chatMessages, llmLoading, setMessages, state.llmLatency, state.ttsOptions?.model]);
 
   /**
    * Contextual functions
@@ -316,6 +248,7 @@ export default function Conversation() {
     if (!initialLoad) return;
 
     setInitialLoad(false);
+    startMicrophone();
 
     const intro = await getIntroMessage(state.selectedPromptId, {
       assistantName: assistant.name,
@@ -331,42 +264,30 @@ export default function Conversation() {
     requestTtsAudio(greetingMessage); // request welcome audio
 
     // add a stub message data with no latency
-    const promptMetadata: MessageMetadata = {
-      ttsModel: state.ttsOptions?.model,
-    };
-
-    // add a stub message data with no latency
     const welcomeMetadata: MessageMetadata = {
       ...greetingMessage,
       ttsModel: state.ttsOptions?.model,
     };
 
-    addMessageData(promptMetadata);
     addMessageData(welcomeMetadata);
-  }, [addMessageData, assistant.name, initialLoad, requestTtsAudio, setMessages, state.selectedPromptId, state.ttsOptions?.model]);
+  }, [addMessageData, assistant.name, initialLoad, requestTtsAudio, setMessages, startMicrophone, state.selectedPromptId, state.ttsOptions?.model]);
 
   const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
     const content = utteranceText(data);
-    // console.log('transcript', content); //debug
 
-    if (content !== '' || data.speech_final) {
+    if (content !== '') {
+      console.log('Transcript added to queue: ', content);
       addTranscriptPart({
-        is_final: data.is_final as boolean,
-        speech_final: data.speech_final as boolean,
+        isFinal: !!data.is_final,
         text: content,
       });
     }
   }, [addTranscriptPart]);
 
-  const onUtteranceEnd = useCallback(() => {
-    setUtteranceEnded(true);
-  }, []);
-
   useEffect(() => {
     const onOpen = () => {
       if (state.connectionReady && !eventListenerAdded.current) {
         state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
-        state.connection?.addListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
         eventListenerAdded.current = true;
       }
     };
@@ -377,92 +298,42 @@ export default function Conversation() {
         state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
         if (state.connectionReady && eventListenerAdded.current) {
           state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
-          state.connection?.removeListener(LiveTranscriptionEvents.UtteranceEnd, onUtteranceEnd);
           eventListenerAdded.current = false;
         }
       };
     }
-  }, [state.connection, state.connectionReady, onTranscript, onUtteranceEnd]);
+  }, [state.connection, state.connectionReady, onTranscript]);
 
+  /**
+   * To gather a full transcript for an utterance, you would need to concatenate all responses marked is_final: true.
+   * https://developers.deepgram.com/docs/understand-endpointing-interim-results#getting-final-transcripts
+   */
   const getCurrentUtterance = useCallback(() => {
-    const filteredParts = transcriptParts.filter(({ is_final, speech_final }, i, arr) => {
-      return is_final || speech_final || (!is_final && i === arr.length - 1);
+    const transcripts = transcriptParts.filter(({ isFinal }, i, arr) => {
+      return isFinal || (!isFinal && i === arr.length - 1);
     });
-    // console.log('filter parts', filteredParts); //debug
-    return filteredParts; // Return the result as before
+
+    const utterance = transcripts.map(({ text }) => text).join(' ').trim();
+    return utterance;
   }, [transcriptParts]);
 
-  const [lastUtterance, setLastUtterance] = useState<number>();
-
   useEffect(() => {
-    const parts = getCurrentUtterance();
-    const last = parts[parts.length - 1];
-    const content = parts
-      .map(({ text }) => text)
-      .join(' ')
-      .trim();
+    if (!isSpeeching) {
+      return;
+    }
+
+    const utterance = getCurrentUtterance();
 
     /**
-     * if the entire utterance is empty, don't go any further
+     * If the entire utterance is empty, don't go any further
      * for example, many many many empty transcription responses
      */
-    if (!content) {
+    if (!utterance) {
       return;
     }
 
-    /**
-   * onTranscipt can occasionally get the same content several times.
-   * This check guards against that scenario.
-   * If the TTS has finished playing, but the user has not started speaking yet, then
-   * clearTranscriptParts and return.
-   */
-    if (!activeAssistantResponse.current) {
-      if (!activeUserResponse.current) {
-        console.log('User response has not started. Clearing transcript.');
-        clearTranscriptParts();
-        return;
-      }
-    }
-
-    /**
-     * failsafe was triggered since we last sent a message to TTS
-     */
-    if (failsafeTriggered) {
-      clearTranscriptParts();
-      setCurrentUtterance(undefined);
-      return;
-    }
-
-    /**
-     * display the concatenated utterances
-     */
-    setCurrentUtterance(content);
-
-    /**
-     * record the last time we recieved a word
-     */
-    if (last.text !== '') {
-      setLastUtterance(Date.now());
-    }
-
-    /**
-     * if the last part of the utterance, empty or not, is speech_final, send to the LLM.
-     */
-    if (last && last.speech_final && utteranceEnded) {
-      // console.log('final speech'); //debug
-      appendUserSpeechMessage(content);
-      clearFailsafeTimeout();
-      clearTranscriptParts();
-      setCurrentUtterance(undefined);
-      setUtteranceEnded(false);
-    }
-  }, [
-    getCurrentUtterance,
-    clearTranscriptParts,
-    failsafeTriggered,
-    utteranceEnded,
-    appendUserSpeechMessage,
-  ]);
+    setCurrentUtterance(utterance);
+  }, [isSpeeching, getCurrentUtterance]);
 
   /**
    * magic microphone audio queue processing
@@ -504,7 +375,7 @@ export default function Conversation() {
   useEffect(() => {
     let keepAlive: NodeJS.Timeout | null = null;
 
-    if (state.connection && state.connectionReady && !microphoneOpen) {
+    if (state.connection && state.connectionReady) {
       keepAlive = setInterval(() => {
         // should stop spamming dev console when working on frontend in devmode
         if (state.connection) {
@@ -536,7 +407,7 @@ export default function Conversation() {
     }, 100); // Adding a small delay to ensure the DOM has updated
 
     return () => clearTimeout(timeoutId); // Cleanup to avoid unintended scrolls
-  }, [chatMessages]);
+  }, [chatMessages, currentUtterance]);
 
   if (initialLoad) {
     return (
