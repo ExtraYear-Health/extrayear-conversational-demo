@@ -27,7 +27,7 @@ export function Header({
             <VerifiedIcon className="text-primary-500" />
           </div>
           <div className={`text-xs text-gray-500 dark:text-gray-400 ${isTyping ? 'italic' : ''}`}>
-            {isTyping ? 'typing...' : job}
+            {isTyping ? 'recording audio...' : job}
           </div>
         </div>
       </div>
