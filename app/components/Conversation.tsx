@@ -108,14 +108,6 @@ export default function Conversation() {
             networkLatency: Date.now() - start,
             model,
           });
-
-          if (player) {
-            player.onended = () => {
-              clearTranscriptParts();
-            };
-          } else {
-            console.error('Player is undefined');
-          }
         });
       } catch (error) {
         // Log and optionally handle errors more explicitly
@@ -123,7 +115,7 @@ export default function Conversation() {
       }
     },
     // Dependencies for useCallback to ensure the function updates when necessary
-    [addAudio, clearTranscriptParts, player, startAudio, state.ttsOptions?.model, state.ttsOptions?.ttsProvider],
+    [addAudio, startAudio, state.ttsOptions?.model, state.ttsOptions?.ttsProvider],
   );
 
   // An optional callback that will be called when the chat stream ends
@@ -206,6 +198,7 @@ export default function Conversation() {
     voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
     silenceThresholdMs: state.sttOptions.utterance_end_ms,
     onSpeechStart() {
+      clearTranscriptParts();
       if (!player?.ended) {
         stopAudio();
       }
