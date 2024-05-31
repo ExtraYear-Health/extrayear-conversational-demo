@@ -13,6 +13,10 @@ export interface UseReactVADProps {
   voiceProbThreshold?: number;
 }
 
+/**
+ * React hook to use the VAD (Voice Activity Detection) to detect speech in real-time
+ * @see - https://github.com/snakers4/silero-vad
+ */
 export default function useReactVAD({
   listening,
   voiceProbThreshold = 0.9,
