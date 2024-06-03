@@ -195,22 +195,20 @@ export default function Conversation() {
     listening: microphoneOpen,
     voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
     silenceThresholdMs: state.sttOptions.utterance_end_ms,
-    onSpeechStart() {
-      if (!microphoneOpen) return;
-
+    onSpeechStart: useCallback(() => {
       clearTranscriptParts();
       if (!player?.ended) {
         stopAudio();
       }
-    },
-    onSpeechEnd() {
+    }, [clearTranscriptParts, player?.ended, stopAudio]),
+    onSpeechEnd: useCallback(() => {
       if (currentUtterance) {
         console.log('Send message to LLM');
         appendUserSpeechMessage(currentUtterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
       }
-    },
+    }, [appendUserSpeechMessage, clearTranscriptParts, currentUtterance]),
   });
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useMicVAD } from '@ricky0123/vad-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useTimer } from '../hooks/useTimer';
 
@@ -19,56 +19,57 @@ export interface UseReactVADProps {
  */
 export default function useReactVAD({
   listening,
-  voiceProbThreshold = 0.9,
-  silenceThresholdMs = 4000,
-  onSpeechStart,
   onSpeechEnd,
+  onSpeechStart,
+  silenceThresholdMs = 4000,
+  voiceProbThreshold = 0.9,
 }: UseReactVADProps) {
   const [speechState, setSpeechState] = useState<SpeechState>('idle');
+  const initialized = useRef(false);
 
-  function startSpeech() {
+  const startSpeech = useCallback(() => {
     console.info('[ReactVAD] Speech has started.');
 
     setSpeechState('started');
     onSpeechStart();
-  }
+  }, [onSpeechStart]);
 
-  function endSpeech() {
+  const endSpeech = useCallback(() => {
     console.info('[ReactVAD] Speech has ended.');
 
     setSpeechState('ended');
     onSpeechEnd();
-  }
+  }, [onSpeechEnd]);
 
   const silenceTimer = useTimer({
     autostart: false,
-    initialTime: 0,
     endTime: silenceThresholdMs / 1000, // convert to seconds
-    step: 1,
-    interval: 1000,
     initialStatus: 'STOPPED',
     onTimeOver: endSpeech,
   });
 
   const { start: startMicVAD } = useMicVAD({
+    startOnLoad: false,
     positiveSpeechThreshold: voiceProbThreshold,
     negativeSpeechThreshold: voiceProbThreshold - 0.1,
-    onSpeechStart() {
+    onSpeechStart: useCallback(() => {
       silenceTimer.reset();
+
       if (speechState !== 'started') {
         startSpeech();
       }
-    },
-    onSpeechEnd() {
+    }, [silenceTimer, speechState, startSpeech]),
+    onSpeechEnd: useCallback(() => {
       if (speechState === 'started') {
         silenceTimer.start();
       }
-    },
+    }, [silenceTimer, speechState]),
   });
 
   useEffect(() => {
-    if (listening) {
+    if (listening && !initialized.current) {
       startMicVAD();
+      initialized.current = true;
     }
   }, [listening, startMicVAD]);
 
