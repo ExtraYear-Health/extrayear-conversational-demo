@@ -6,150 +6,151 @@ import React, { useEffect } from 'react';
 
 import { useDeepgram, voices } from '../context/Deepgram'; // Ensure the path matches where your context is defined
 import { llmModels } from '../context/LLM';
-import { useActionState } from '../lib/hooks/useActionState';
+// import { useActionState } from '../lib/hooks/useActionState';
+import { useVapi } from '../lib/hooks/useVapi';
 
-import { getPromptsOptions } from './conversation/actions';
+// import { getPromptsOptions } from './conversation/actions';
 
-interface ConversationSelectOptionsProps {
-  value?: string;
-  onChange?(value: string): void;
-}
+// interface ConversationSelectOptionsProps {
+//   value?: string;
+//   onChange?(value: string): void;
+// }
 
-interface NumberSelectOptionsProps {
-  value?: number;
-  onChange?(value: number): void;
-}
+// interface NumberSelectOptionsProps {
+//   value?: number;
+//   onChange?(value: number): void;
+// }
 
-const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
-  const llmModelOptions = Object.entries(llmModels).map(([key, value]) => ({
-    id: key,
-    label: `${value.llmProvider} - ${value.llmModel}`,
-    api: value.api,
-  }));
+// const LLMModelSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
+//   const llmModelOptions = Object.entries(llmModels).map(([key, value]) => ({
+//     id: key,
+//     label: `${value.llmProvider} - ${value.llmModel}`,
+//     api: value.api,
+//   }));
 
-  return (
-    <Select
-      value={value}
-      selectedKeys={[value]}
-      onChange={(e) => onChange(e.target.value)}
-      label="Select LLM Model"
-      variant="bordered"
-    >
-      {llmModelOptions.map((option) => (
-        <SelectItem key={option.id} value={option.id}>
-          {option.label}
-        </SelectItem>
-      ))}
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       value={value}
+//       selectedKeys={[value]}
+//       onChange={(e) => onChange(e.target.value)}
+//       label="Select LLM Model"
+//       variant="bordered"
+//     >
+//       {llmModelOptions.map((option) => (
+//         <SelectItem key={option.id} value={option.id}>
+//           {option.label}
+//         </SelectItem>
+//       ))}
+//     </Select>
+//   );
+// };
 
-const PromptSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
-  const getPromptsAction = useActionState(getPromptsOptions, []);
+// const PromptSelection = ({ value, onChange }: ConversationSelectOptionsProps) => {
+//   const getPromptsAction = useActionState(getPromptsOptions, []);
 
-  useEffect(() => {
-    getPromptsAction.dispatch();
-  }, []);
+//   useEffect(() => {
+//     getPromptsAction.dispatch();
+//   }, []);
 
-  return (
-    <Select
-      value={value}
-      isLoading={getPromptsAction.loading}
-      selectedKeys={getPromptsAction.data?.length > 0 ? [value] : []}
-      onChange={(e) => onChange(e.target.value)}
-      label="Select a Conversation"
-      variant="bordered"
-    >
-      {getPromptsAction.data.map((option) => (
-        <SelectItem key={option.id} value={option.id} textValue={option.title}>
-          {option.title}
-        </SelectItem>
-      ))}
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       value={value}
+//       isLoading={getPromptsAction.loading}
+//       selectedKeys={getPromptsAction.data?.length > 0 ? [value] : []}
+//       onChange={(e) => onChange(e.target.value)}
+//       label="Select a Conversation"
+//       variant="bordered"
+//     >
+//       {getPromptsAction.data.map((option) => (
+//         <SelectItem key={option.id} value={option.id} textValue={option.title}>
+//           {option.title}
+//         </SelectItem>
+//       ))}
+//     </Select>
+//   );
+// };
 
-const VoiceAssistantSelect = ({ value, onChange }: ConversationSelectOptionsProps) => {
-  const options = Object.entries(voices).map(([key, obj]) => ({
-    id: key,
-    ...obj,
-  }));
+// const VoiceAssistantSelect = ({ value, onChange }: ConversationSelectOptionsProps) => {
+//   const options = Object.entries(voices).map(([key, obj]) => ({
+//     id: key,
+//     ...obj,
+//   }));
 
-  return (
-    <Select
-      items={options}
-      variant="bordered"
-      onChange={(e) => onChange?.(e.target.value)}
-      label="Select a Voice Assistant"
-      placeholder="Select a user"
-      selectedKeys={[value]}
-    >
-      {(option) => (
-        <SelectItem key={option.id} value={option.id} textValue={option.name}>
-          <div className="flex gap-2 items-center">
-            <Avatar alt={option.name} className="flex-shrink-0" size="sm" src={option.avatar} />
-            <div className="flex flex-col">
-              <span className="text-small">{option.name}</span>
-              <span className="text-tiny text-default-400">{option.ttsProvider}</span>
-            </div>
-          </div>
-        </SelectItem>
-      )}
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       items={options}
+//       variant="bordered"
+//       onChange={(e) => onChange?.(e.target.value)}
+//       label="Select a Voice Assistant"
+//       placeholder="Select a user"
+//       selectedKeys={[value]}
+//     >
+//       {(option) => (
+//         <SelectItem key={option.id} value={option.id} textValue={option.name}>
+//           <div className="flex gap-2 items-center">
+//             <Avatar alt={option.name} className="flex-shrink-0" size="sm" src={option.avatar} />
+//             <div className="flex flex-col">
+//               <span className="text-small">{option.name}</span>
+//               <span className="text-tiny text-default-400">{option.ttsProvider}</span>
+//             </div>
+//           </div>
+//         </SelectItem>
+//       )}
+//     </Select>
+//   );
+// };
 
-const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
-  const utteranceEndMsOptions = [
-    1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000,
-  ];
+// const UtteranceEndMsSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+//   const utteranceEndMsOptions = [
+//     1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000,
+//   ];
 
-  return (
-    <Select
-      value={value?.toString()}
-      selectedKeys={[value?.toString()]}
-      onChange={(e) => onChange(Number(e.target.value))}
-      label="Select STT Delay (ms)"
-      variant="bordered"
-    >
-      {utteranceEndMsOptions.map((option) => (
-        <SelectItem key={option.toString()} value={option.toString()} textValue={option.toString()}>
-          {option} ms
-        </SelectItem>
-      ))}
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       value={value?.toString()}
+//       selectedKeys={[value?.toString()]}
+//       onChange={(e) => onChange(Number(e.target.value))}
+//       label="Select STT Delay (ms)"
+//       variant="bordered"
+//     >
+//       {utteranceEndMsOptions.map((option) => (
+//         <SelectItem key={option.toString()} value={option.toString()} textValue={option.toString()}>
+//           {option} ms
+//         </SelectItem>
+//       ))}
+//     </Select>
+//   );
+// };
 
-const VadProbThresholdSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
-  const options = [
-    { value: 0.1, label: '10%' },
-    { value: 0.2, label: '20%' },
-    { value: 0.3, label: '30%' },
-    { value: 0.4, label: '40%' },
-    { value: 0.5, label: '50%' },
-    { value: 0.6, label: '60%' },
-    { value: 0.7, label: '70%' },
-    { value: 0.8, label: '80%' },
-    { value: 0.9, label: '90%' },
-  ];
+// const VadProbThresholdSelection = ({ value, onChange }: NumberSelectOptionsProps) => {
+//   const options = [
+//     { value: 0.1, label: '10%' },
+//     { value: 0.2, label: '20%' },
+//     { value: 0.3, label: '30%' },
+//     { value: 0.4, label: '40%' },
+//     { value: 0.5, label: '50%' },
+//     { value: 0.6, label: '60%' },
+//     { value: 0.7, label: '70%' },
+//     { value: 0.8, label: '80%' },
+//     { value: 0.9, label: '90%' },
+//   ];
 
-  return (
-    <Select
-      value={value?.toString()}
-      selectedKeys={value ? [value?.toString()] : []}
-      onChange={(e) => onChange(Number(e.target.value))}
-      label="Voice Prob. Threshold (%)"
-      variant="bordered"
-    >
-      {options.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
-          {option.label}
-        </SelectItem>
-      ))}
-    </Select>
-  );
-};
+//   return (
+//     <Select
+//       value={value?.toString()}
+//       selectedKeys={value ? [value?.toString()] : []}
+//       onChange={(e) => onChange(Number(e.target.value))}
+//       label="Voice Prob. Threshold (%)"
+//       variant="bordered"
+//     >
+//       {options.map((option) => (
+//         <SelectItem key={option.value} value={option.value}>
+//           {option.label}
+//         </SelectItem>
+//       ))}
+//     </Select>
+//   );
+// };
 
 interface InitialLoadProps {
   onSubmit: () => void;
@@ -158,6 +159,7 @@ interface InitialLoadProps {
 
 export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
   const { state, dispatch } = useDeepgram();
+  const { toggleCall } = useVapi();
 
   const {
     llm,
@@ -184,7 +186,7 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
           <p className="text-center text-default-400">Conversations for Cognitive Health</p>
         </div>
         <div className="mt-6">
-          <div className="my-2.5">
+          {/* <div className="my-2.5">
             <LLMModelSelection
               value={llmModel}
               onChange={(value) => {
@@ -242,21 +244,21 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
                 });
               }}
             />
-          </div>
+          </div> */}
 
           <Button
             className="mt-4 disabled"
             color="primary"
-            isDisabled={disableButton}
+            // isDisabled={disableButton}
             fullWidth
-            isLoading={connecting}
-            onClick={onSubmit}
+            // isLoading={connecting}
+            onClick={toggleCall}
             size="lg"
-            startContent={connecting && (
-              <Spinner size="sm" />
-            )}
+            // startContent={connecting && (
+            //   <Spinner size="sm" />
+            // )}
           >
-            {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`}
+            {/* {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`} */}
           </Button>
         </div>
       </div>

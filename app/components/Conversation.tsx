@@ -10,6 +10,7 @@ import { useNowPlaying } from 'react-nowplaying';
 import { useQueue } from '@uidotdev/usehooks';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+import { useVapi } from '../lib/hooks/useVapi';
 import {
   generateRandomString,
   utteranceText,
@@ -38,6 +39,7 @@ export default function Conversation() {
   const { addAudio } = useAudioStore();
   const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
   const { addMessageData } = useMessageData();
+  const { toggleCall, messages, callStatus, activeTranscript, audioLevel } = useVapi();
 
   const {
     microphoneOpen,
@@ -69,175 +71,141 @@ export default function Conversation() {
    * State
    */
   const [isProcessing, setProcessing] = useState(false);
-
   const [initialLoad, setInitialLoad] = useState(true);
-
   const assistant = voiceMap(state.ttsOptions.model);
+  // const [chatMessages, setChatMessages] = useState([]);
+
+  // const appendUserMessage = (inputString) => {
+  //   setChatMessages(currentMessages => [
+  //     ...currentMessages,
+  //     {
+  //       id: generateRandomString(7),
+  //       role: 'user',
+  //       content: inputString,
+  //     },
+  //   ]);
+  // };
+
+  // const appendUserMessage = (inputString) => {
+  //   const userMessage = {
+  //     id: generateRandomString(7),
+  //     role: 'user',
+  //     content: inputString,
+  //   } as Message;
+
+  //   setMessages([userMessage]);
+  // };
 
   // Defines a memoized function to request TTS audio using current TTS settings.
-  const requestTtsAudio = useCallback(
-    async (message: Message) => {
-      const start = Date.now();
-      const model = state.ttsOptions?.model ?? 'aura-asteria-en'; // Default model fallback
+  // const requestTtsAudio = useCallback(
+  //   async (message: Message) => {
+  //     const start = Date.now();
+  //     const model = state.ttsOptions?.model ?? 'aura-asteria-en'; // Default model fallback
 
-      try {
-        // Request audio generation based on the TTS provider set in the state
-        const res: Response | null = await fetch(`/api/speak?model=${model}`, {
-          cache: 'no-store',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(message),
-        });
+  //     try {
+  //       // Request audio generation based on the TTS provider set in the state
+  //       const res: Response | null = await fetch(`/api/speak?model=${model}`, {
+  //         cache: 'no-store',
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify(message),
+  //       });
 
-        // Check response validity and log any failures
-        if (!res || !res.ok) {
-          console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
-          return;
-        }
+  //       // Check response validity and log any failures
+  //       if (!res || !res.ok) {
+  //         console.error('Failed to fetch:', state.ttsOptions?.ttsProvider, res?.statusText);
+  //         return;
+  //       }
 
-        const blob = await res.blob();
+  //       const blob = await res.blob();
 
-        // Calculate the latency and play the received TTS audio
-        const latency = Number(res.headers.get('X-DG-Latency')) ?? Date.now() - start;
+  //       // Calculate the latency and play the received TTS audio
+  //       const latency = Number(res.headers.get('X-DG-Latency')) ?? Date.now() - start;
 
-        startAudio(blob, 'audio/mp3', message.id).then(() => {
-          addAudio({
-            id: message.id,
-            blob,
-            latency,
-            networkLatency: Date.now() - start,
-            model,
-          });
-        });
-      } catch (error) {
-        // Log and optionally handle errors more explicitly
-        console.error('Error fetching audio:', error);
-      }
-    },
-    // Dependencies for useCallback to ensure the function updates when necessary
-    [addAudio, startAudio, state.ttsOptions?.model, state.ttsOptions?.ttsProvider],
-  );
-
-  // An optional callback that will be called when the chat stream ends
-  const onFinish = useCallback((rawMessage: Message) => {
-    lastLlmMessageHasBeenCleaned.current = false;
-
-    const message: Message = {
-      ...rawMessage,
-      content: cleanString(rawMessage.content),
-    };
-
-    requestTtsAudio(message);
-  }, [requestTtsAudio]);
-
-  // An optional callback that will be called with the response from the API endpoint. Useful for throwing customized errors or logging
-  const onResponse = useCallback((res: Response) => {
-    (async () => {
-      const start = Number(res.headers.get('x-llm-start'));
-      const response = Number(res.headers.get('x-llm-response'));
-      dispatch({ type: 'SET_LLM_LATENCY', payload: { start, response } });
-    })();
-  }, [dispatch]);
-
-  // Define an interface to structure the data for AI model parameters within the application
-  interface BodyApiType {
-    llmModel: string;
-    temperature: number;
-    maxTokens: number;
-    llmProvider: string;
-    promptId: string;
-    templateVars: {
-      assistantName?: string;
-    };
-  }
+  //       startAudio(blob, 'audio/mp3', message.id).then(() => {
+  //         addAudio({
+  //           id: message.id,
+  //           blob,
+  //           latency,
+  //           networkLatency: Date.now() - start,
+  //           model,
+  //         });
+  //       });
+  //     } catch (error) {
+  //       // Log and optionally handle errors more explicitly
+  //       console.error('Error fetching audio:', error);
+  //     }
+  //   },
+  //   // Dependencies for useCallback to ensure the function updates when necessary
+  //   [addAudio, startAudio, state.ttsOptions?.model, state.ttsOptions?.ttsProvider],
+  // );
 
   /**
    * AI SDK for the voicebot conversation
    */
-  const {
-    messages: chatMessages,
-    append,
-    handleInputChange,
-    input,
-    handleSubmit,
-    isLoading: llmLoading,
-    setMessages,
-  } = useChat({
-    id: 'aura',
-    api: '/api/brain',
-    body: {
-      llmProvider: state.llm.llmProvider,
-      llmModel: state.llm.llmModel,
-      temperature: state.llm.settings.temperature,
-      maxTokens: state.llm.settings.maxTokens,
-      promptId: state.selectedPromptId,
-      templateVars: {
-        assistantName: assistant.name,
-      },
-    } satisfies BodyApiType,
-    initialMessages: [],
-    onFinish,
-    onResponse,
-  });
+  // const {
+  //   messages: chatMessages,
+  //   setMessages,
+  // } = useChat();
 
-  const [currentUtterance, setCurrentUtterance] = useState<string>();
-  const eventListenerAdded = useRef<boolean>(false); // used to protect against multiple event listeners being added
+  // const [currentUtterance, setCurrentUtterance] = useState<string>();
+  // const eventListenerAdded = useRef<boolean>(false); // used to protect against multiple event listeners being added
 
   // Append user-generated content to the chat.
-  const appendUserSpeechMessage = useCallback(async (inputString) => {
-    await append({
-      role: 'user',
-      content: inputString,
-    });
-  }, [append]);
+  // const appendUserSpeechMessage = useCallback(async (inputString) => {
+  //   await append({
+  //     role: 'user',
+  //     content: inputString,
+  //   });
+  // }, [append]);
 
-  const { isSpeeching } = useCobraVAD({
-    listening: microphoneOpen,
-    voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
-    silenceThresholdMs: state.sttOptions.utterance_end_ms,
-    onSpeechStart() {
-      clearTranscriptParts();
-      if (!player?.ended) {
-        stopAudio();
-      }
-    },
-    onSpeechEnd() {
-      if (currentUtterance) {
-        console.log('Send message to LLM');
-        appendUserSpeechMessage(currentUtterance);
-        clearTranscriptParts();
-        setCurrentUtterance(undefined);
-      }
-    },
-  });
+  // const { isSpeeching } = useCobraVAD({
+  //   listening: microphoneOpen,
+  //   voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
+  //   silenceThresholdMs: state.sttOptions.utterance_end_ms,
+  //   onSpeechStart() {
+  //     clearTranscriptParts();
+  //     if (!player?.ended) {
+  //       stopAudio();
+  //     }
+  //   },
+  //   onSpeechEnd() {
+  //     if (currentUtterance) {
+  //       console.log('Send message to LLM');
+  //       appendUserSpeechMessage(currentUtterance);
+  //       clearTranscriptParts();
+  //       setCurrentUtterance(undefined);
+  //     }
+  //   },
+  // });
 
-  useEffect(() => {
-    if (llmLoading || !state.llmLatency || lastLlmMessageHasBeenCleaned.current) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (llmLoading || !state.llmLatency || lastLlmMessageHasBeenCleaned.current) {
+  //     return;
+  //   }
 
-    // Hack way to remove extra characters from the LLM response.
-    const messages = chatMessages.map((message, index) => {
-      if (index === chatMessages.length - 1) {
-        return {
-          ...message,
-          content: cleanString(message.content),
-        };
-      }
-      return message;
-    });
+  //   // // Hack way to remove extra characters from the LLM response.
+  //   // const messages = chatMessages.map((message, index) => {
+  //   //   if (index === chatMessages.length - 1) {
+  //   //     return {
+  //   //       ...message,
+  //   //       content: cleanString(message.content),
+  //   //     };
+  //   //   }
+  //   //   return message;
+  //   // });
 
-    setMessages(messages);
-    lastLlmMessageHasBeenCleaned.current = true;
+  //   // setMessages(messages);
+  //   // lastLlmMessageHasBeenCleaned.current = true;
 
-    const latestLlmMessage: MessageMetadata = {
-      ...messages.at(-1),
-      ...state.llmLatency,
-      end: Date.now(),
-      ttsModel: state.ttsOptions?.model,
-    };
-    addMessageData(latestLlmMessage);
-  }, [addMessageData, chatMessages, llmLoading, setMessages, state.llmLatency, state.ttsOptions?.model]);
+  //   const latestLlmMessage: MessageMetadata = {
+  //     ...messages.at(-1),
+  //     ...state.llmLatency,
+  //     end: Date.now(),
+  //     ttsModel: state.ttsOptions?.model,
+  //   };
+  //   addMessageData(latestLlmMessage);
+  // }, [addMessageData, chatMessages, llmLoading, setMessages, state.llmLatency, state.ttsOptions?.model]);
 
   /**
    * Contextual functions
@@ -246,153 +214,155 @@ export default function Conversation() {
     if (!initialLoad) return;
 
     setInitialLoad(false);
-    startMicrophone();
+    // startMicrophone();
 
-    const intro = await getIntroMessage(state.selectedPromptId, {
-      assistantName: assistant.name,
-    });
+    // vapi.start('e88895ad-0b69-4e73-9eaa-c65a9e68d997');
 
-    const greetingMessage = {
-      id: generateRandomString(7),
-      role: 'assistant',
-      content: intro,
-    } as Message;
+    // const intro = await getIntroMessage(state.selectedPromptId, {
+    //   assistantName: assistant.name,
+    // });
 
-    setMessages([greetingMessage]);
-    requestTtsAudio(greetingMessage); // request welcome audio
+    // const greetingMessage = {
+    //   id: generateRandomString(7),
+    //   role: 'assistant',
+    //   content: intro,
+    // } as Message;
 
-    // add a stub message data with no latency
-    const welcomeMetadata: MessageMetadata = {
-      ...greetingMessage,
-      ttsModel: state.ttsOptions?.model,
-    };
+    // setMessages([greetingMessage]);
+    // requestTtsAudio(greetingMessage); // request welcome audio
 
-    addMessageData(welcomeMetadata);
-  }, [addMessageData, assistant.name, initialLoad, requestTtsAudio, setMessages, startMicrophone, state.selectedPromptId, state.ttsOptions?.model]);
+    // // add a stub message data with no latency
+    // const welcomeMetadata: MessageMetadata = {
+    //   ...greetingMessage,
+    //   ttsModel: state.ttsOptions?.model,
+    // };
 
-  const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
-    const content = utteranceText(data);
+    // addMessageData(welcomeMetadata);
+  }, [initialLoad]);
 
-    if (content !== '') {
-      console.log('Transcript added to queue: ', content);
-      addTranscriptPart({
-        isFinal: !!data.is_final,
-        text: content,
-      });
-    }
-  }, [addTranscriptPart]);
+  // const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
+  //   const content = utteranceText(data);
 
-  useEffect(() => {
-    const onOpen = () => {
-      if (state.connectionReady && !eventListenerAdded.current) {
-        state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
-        eventListenerAdded.current = true;
-      }
-    };
+  //   if (content !== '') {
+  //     console.log('Transcript added to queue: ', content);
+  //     addTranscriptPart({
+  //       isFinal: !!data.is_final,
+  //       text: content,
+  //     });
+  //   }
+  // }, [addTranscriptPart]);
 
-    if (state.connection) {
-      state.connection.addListener(LiveTranscriptionEvents.Open, onOpen);
-      return () => {
-        state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
-        if (state.connectionReady && eventListenerAdded.current) {
-          state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
-          eventListenerAdded.current = false;
-        }
-      };
-    }
-  }, [state.connection, state.connectionReady, onTranscript]);
+  // useEffect(() => {
+  //   const onOpen = () => {
+  //     if (state.connectionReady && !eventListenerAdded.current) {
+  //       state.connection?.addListener(LiveTranscriptionEvents.Transcript, onTranscript);
+  //       eventListenerAdded.current = true;
+  //     }
+  //   };
+
+  //   if (state.connection) {
+  //     state.connection.addListener(LiveTranscriptionEvents.Open, onOpen);
+  //     return () => {
+  //       state.connection?.removeListener(LiveTranscriptionEvents.Open, onOpen);
+  //       if (state.connectionReady && eventListenerAdded.current) {
+  //         state.connection?.removeListener(LiveTranscriptionEvents.Transcript, onTranscript);
+  //         eventListenerAdded.current = false;
+  //       }
+  //     };
+  //   }
+  // }, [state.connection, state.connectionReady, onTranscript]);
 
   /**
    * To gather a full transcript for an utterance, you would need to concatenate all responses marked is_final: true.
    * https://developers.deepgram.com/docs/understand-endpointing-interim-results#getting-final-transcripts
    */
-  const getCurrentUtterance = useCallback(() => {
-    const transcripts = transcriptParts.filter(({ isFinal }, i, arr) => {
-      return isFinal || (!isFinal && i === arr.length - 1);
-    });
+  // const getCurrentUtterance = useCallback(() => {
+  //   const transcripts = transcriptParts.filter(({ isFinal }, i, arr) => {
+  //     return isFinal || (!isFinal && i === arr.length - 1);
+  //   });
 
-    const utterance = transcripts.map(({ text }) => text).join(' ').trim();
-    return utterance;
-  }, [transcriptParts]);
+  //   const utterance = transcripts.map(({ text }) => text).join(' ').trim();
+  //   return utterance;
+  // }, [transcriptParts]);
 
-  useEffect(() => {
-    if (!isSpeeching) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!isSpeeching) {
+  //     return;
+  //   }
 
-    const utterance = getCurrentUtterance();
+  //   const utterance = getCurrentUtterance();
 
-    /**
-     * If the entire utterance is empty, don't go any further
-     * for example, many many many empty transcription responses
-     */
-    if (!utterance) {
-      return;
-    }
+  //   /**
+  //    * If the entire utterance is empty, don't go any further
+  //    * for example, many many many empty transcription responses
+  //    */
+  //   if (!utterance) {
+  //     return;
+  //   }
 
-    setCurrentUtterance(utterance);
-  }, [isSpeeching, getCurrentUtterance]);
+  //   setCurrentUtterance(utterance);
+  // }, [isSpeeching, getCurrentUtterance]);
 
   /**
    * magic microphone audio queue processing
    */
-  useEffect(() => {
-    const processQueue = async () => {
-      if (microphoneQueueSize > 0 && !isProcessing) {
-        setProcessing(true);
+  // useEffect(() => {
+  //   const processQueue = async () => {
+  //     if (microphoneQueueSize > 0 && !isProcessing) {
+  //       setProcessing(true);
 
-        if (state.connectionReady) { // Use connectionReady from state
-          const nextBlob = firstBlob;
+  //       if (state.connectionReady) { // Use connectionReady from state
+  //         const nextBlob = firstBlob;
 
-          if (nextBlob && nextBlob?.size > 0) {
-            state.connection?.send(nextBlob); // Use connection from state
-          }
-          removeBlob();
-        }
+  //         if (nextBlob && nextBlob?.size > 0) {
+  //           state.connection?.send(nextBlob); // Use connection from state
+  //         }
+  //         removeBlob();
+  //       }
 
-        const waiting = setTimeout(() => {
-          clearTimeout(waiting);
-          setProcessing(false);
-        }, 200);
-      }
-    };
+  //       const waiting = setTimeout(() => {
+  //         clearTimeout(waiting);
+  //         setProcessing(false);
+  //       }, 200);
+  //     }
+  //   };
 
-    processQueue();
-  }, [
-    state.connection, // Use connection from state
-    state.connectionReady, // Use connectionReady from state
-    firstBlob,
-    microphoneQueueSize,
-    isProcessing,
-    removeBlob,
-  ]);
+  //   processQueue();
+  // }, [
+  //   state.connection, // Use connection from state
+  //   state.connectionReady, // Use connectionReady from state
+  //   firstBlob,
+  //   microphoneQueueSize,
+  //   isProcessing,
+  //   removeBlob,
+  // ]);
 
   /**
    * keep deepgram connection alive when mic closed
    */
-  useEffect(() => {
-    let keepAlive: NodeJS.Timeout | null = null;
+  // useEffect(() => {
+  //   let keepAlive: NodeJS.Timeout | null = null;
 
-    if (state.connection && state.connectionReady) {
-      keepAlive = setInterval(() => {
-        // should stop spamming dev console when working on frontend in devmode
-        if (state.connection) {
-          if (state.connection.getReadyState() !== LiveConnectionState.OPEN) {
-            if (keepAlive) clearInterval(keepAlive);
-          } else {
-            state.connection.keepAlive();
-          }
-        }
-      }, 10000);
-    } else {
-      if (keepAlive) clearInterval(keepAlive);
-    }
+  //   if (state.connection && state.connectionReady) {
+  //     keepAlive = setInterval(() => {
+  //       // should stop spamming dev console when working on frontend in devmode
+  //       if (state.connection) {
+  //         if (state.connection.getReadyState() !== LiveConnectionState.OPEN) {
+  //           if (keepAlive) clearInterval(keepAlive);
+  //         } else {
+  //           state.connection.keepAlive();
+  //         }
+  //       }
+  //     }, 10000);
+  //   } else {
+  //     if (keepAlive) clearInterval(keepAlive);
+  //   }
 
-    // prevent duplicate timeouts
-    return () => {
-      if (keepAlive) clearInterval(keepAlive);
-    };
-  }, [state.connection, state.connectionReady, microphoneOpen]);
+  //   // prevent duplicate timeouts
+  //   return () => {
+  //     if (keepAlive) clearInterval(keepAlive);
+  //   };
+  // }, [state.connection, state.connectionReady, microphoneOpen]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -405,7 +375,7 @@ export default function Conversation() {
     }, 100); // Adding a small delay to ensure the DOM has updated
 
     return () => clearTimeout(timeoutId); // Cleanup to avoid unintended scrolls
-  }, [chatMessages, currentUtterance]);
+  }, [messages]);
 
   if (initialLoad) {
     return (
@@ -432,15 +402,12 @@ export default function Conversation() {
             <div className="min-h-full flex flex-col justify-end">
               <div className="grid grid-cols-12">
 
-                {chatMessages?.map((message, i) => {
-                  if (message.id === 'AAAA' || message.id === 'AAAB') {
-                    return null;
-                  }
+                {messages?.map((message, i) => {
                   return <ChatBubble message={message} key={i} />;
                 })}
 
-                {currentUtterance && (
-                  <RightBubble text={currentUtterance}></RightBubble>
+                {activeTranscript && (
+                  <RightBubble text={activeTranscript}></RightBubble>
                 )}
 
                 <div

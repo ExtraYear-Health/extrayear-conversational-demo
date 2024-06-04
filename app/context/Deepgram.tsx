@@ -42,6 +42,7 @@ type DeepgramAction =
 type DeepgramState = {
   apiKey?: string;
   apiKeyError?: Error;
+  uterrance_end_ms: number;
   ttsOptions: SpeakSchema | undefined;
   sttOptions: LiveSchema | undefined;
   connection: LiveClient | null;
@@ -90,7 +91,7 @@ const initialState: DeepgramState = {
     interim_results: true,
     smart_format: true,
     endpointing: 10,
-    utterance_end_ms: 4000,
+    // utterance_end_ms: 4000,
     filler_words: true,
   },
 
