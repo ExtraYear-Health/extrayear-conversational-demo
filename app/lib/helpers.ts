@@ -1,8 +1,5 @@
 import { LiveTranscriptionEvent } from '@deepgram/sdk';
 import { Message } from 'ai/react';
-import moment from 'moment';
-
-import { greetings } from './constants';
 
 /**
  * get the sentence from a LiveTranscriptionEvent
@@ -52,31 +49,6 @@ function randomArrayValue(array: any[]): any {
   const key = Math.floor(Math.random() * array.length);
 
   return array[key];
-};
-
-function contextualGreeting(): string {
-  const greeting = randomArrayValue(greetings);
-
-  return sprintf(greeting.text, ...greeting.strings);
-};
-
-/**
- * @returns {string}
- */
-function contextualHello(): string {
-  const hour = moment().hour();
-
-  if (hour > 3 && hour <= 12) {
-    return 'Good morning';
-  } else if (hour > 12 && hour <= 15) {
-    return 'Good afternoon';
-  } else if (hour > 15 && hour <= 20) {
-    return 'Good evening';
-  } else if (hour > 20 || hour <= 3) {
-    return 'You\'re up late';
-  } else {
-    return 'Hello';
-  }
 };
 
 /**
@@ -162,8 +134,6 @@ function cleanString(inputString: string): string {
 
 export {
   generateRandomString,
-  contextualGreeting,
-  contextualHello,
   getUserMessages,
   getConversationMessages,
   utteranceText,

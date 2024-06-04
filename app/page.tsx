@@ -4,7 +4,7 @@ export const runtime = 'edge';
 
 import { NextUIProvider } from '@nextui-org/react';
 
-import Conversation from './components/Conversation';
+import { Conversation } from './components/conversation/Conversation';
 
 export default function Home() {
   return (
