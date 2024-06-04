@@ -1,16 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { Call } from '@vapi-ai/web/dist/api';
 
-import { Call, MessageTypeEnum, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
+import { CallStatus, MessageTypeEnum, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
 
 import { vapi } from './vapi.sdk';
-
-export enum CallStatus {
-  INACTIVE = 'inactive',
-  ACTIVE = 'active',
-  LOADING = 'loading',
-}
 
 export interface UseVapiProps {
   onCallStarted?: (call: Call) => void;

@@ -6,7 +6,8 @@ import { InitialScreen } from './InitialScreen';
 import { Chat } from './Chat';
 import { EndScreen } from './EndScreen';
 
-import { CallStatus, useVapi } from '@/app/lib/vapi/useVapi';
+import { useVapi } from '@/app/lib/vapi/useVapi';
+import { CallStatus } from '@/app/lib/conversation.type';
 
 export enum ConversationState {
   IDLE = 'idle',
