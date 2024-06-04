@@ -1,9 +1,12 @@
-import { Message } from 'ai/react';
+// import { Message } from 'ai/react';
+import {
+  TranscriptMessage,
+} from '../lib/conversation.type';
 
 import { TextContent } from './TextContext';
 
 interface RightBubbleProps {
-  message?: Message;
+  message?: TranscriptMessage;
   text?: string;
 }
 
@@ -16,7 +19,7 @@ export const RightBubble = ({
       <div className="flex justify-start flex-row-reverse gap-2">
         <div className="relative text-sm py-3 px-4 shadow rounded-s-xl rounded-ee-xl bg-gradient-to-r from-primary-400 to-primary-500">
           <div className="text-sm font-normal text-white/80 markdown min-w-[10em]">
-            <TextContent text={message?.content ?? text ?? ''} />
+            <TextContent text={message?.transcript ?? text ?? ''} />
           </div>
         </div>
       </div>

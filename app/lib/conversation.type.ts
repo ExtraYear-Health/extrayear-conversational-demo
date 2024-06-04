@@ -1,19 +1,21 @@
 export enum MessageTypeEnum {
-  TRANSCRIPT = "transcript",
-  FUNCTION_CALL = "function-call",
-  FUNCTION_CALL_RESULT = "function-call-result",
-  ADD_MESSAGE = "add-message",
+  TRANSCRIPT = 'transcript',
+  FUNCTION_CALL = 'function-call',
+  FUNCTION_CALL_RESULT = 'function-call-result',
+  ADD_MESSAGE = 'add-message',
+  CONVERSATION_UPDATE = 'conversation-update',
+  MODEL_OUTPUT = 'model-output',
 }
 
 export enum MessageRoleEnum {
-  USER = "user",
-  SYSTEM = "system",
-  ASSISTANT = "assistant",
+  USER = 'user',
+  SYSTEM = 'system',
+  ASSISTANT = 'assistant',
 }
 
 export enum TranscriptMessageTypeEnum {
-  PARTIAL = "partial",
-  FINAL = "final",
+  PARTIAL = 'partial',
+  FINAL = 'final',
 }
 
 export interface TranscriptMessage extends BaseMessage {

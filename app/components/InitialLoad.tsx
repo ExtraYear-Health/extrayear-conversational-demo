@@ -154,25 +154,24 @@ import { useVapi } from '../lib/hooks/useVapi';
 
 interface InitialLoadProps {
   onSubmit: () => void;
-  connecting: boolean;
+  // connecting: boolean;
 }
 
-export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
-  const { state, dispatch } = useDeepgram();
-  const { toggleCall } = useVapi();
+export const InitialLoad = ({ onSubmit }: InitialLoadProps) => {
+  // const { state, dispatch } = useDeepgram();
 
-  const {
-    llm,
-    selectedPromptId,
-    ttsOptions: { model: voiceModel },
-    sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined.
-    vadOptions: { voiceProbThreshold },
-  } = state;
+  // const {
+  //   llm,
+  //   selectedPromptId,
+  //   ttsOptions: { model: voiceModel },
+  //   sttOptions: { utterance_end_ms: utteranceEndMsInput } = { utterance_end_ms: 0 }, // Default value if undefined.
+  //   vadOptions: { voiceProbThreshold },
+  // } = state;
 
   // TODO: refactor context state so we can use llmModel directly
-  const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
+  // const llmModel = Object.keys(llmModels).find((k) => llmModels[k].llmModel === llm.llmModel);
 
-  const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput) || !voiceProbThreshold;
+  // const disableButton = connecting || !llmModel || !selectedPromptId || !voiceModel || isNaN(utteranceEndMsInput) || !voiceProbThreshold;
 
   return (
     <div className="col-start-1 col-end-13 sm:col-start-2 sm:col-end-12 md:col-start-3 md:col-end-11 lg:col-start-4 lg:col-end-10 p-3 mb-1/2">
@@ -252,12 +251,14 @@ export const InitialLoad = ({ onSubmit, connecting }: InitialLoadProps) => {
             // isDisabled={disableButton}
             fullWidth
             // isLoading={connecting}
-            onClick={toggleCall}
+            onClick={onSubmit}
             size="lg"
+            // startContent="Click here to start"
             // startContent={connecting && (
             //   <Spinner size="sm" />
             // )}
           >
+            {/* {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`} */}
             {/* {connecting ? 'Connecting...' : `${isBrowser ? 'Click' : 'Tap'} here to start`} */}
           </Button>
         </div>

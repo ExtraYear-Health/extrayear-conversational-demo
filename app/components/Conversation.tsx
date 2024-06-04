@@ -24,6 +24,7 @@ import { useAudioStore } from '../context/AudioStore';
 import { useCobraVAD } from '../lib/picovoice/useCobraVAD';
 
 import { RightBubble } from './RightBubble';
+import { LeftBubble } from './LeftBubble';
 import { Controls } from './Controls';
 import { ChatBubble } from './ChatBubble';
 import { Header } from './conversation/Header';
@@ -36,41 +37,41 @@ import { getIntroMessage } from './conversation/actions';
  */
 export default function Conversation() {
   const { state, dispatch } = useDeepgram();
-  const { addAudio } = useAudioStore();
-  const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
-  const { addMessageData } = useMessageData();
-  const { toggleCall, messages, callStatus, activeTranscript, audioLevel } = useVapi();
+  // const { addAudio } = useAudioStore();
+  // const { player, stop: stopAudio, play: startAudio } = useNowPlaying();
+  // const { addMessageData } = useMessageData();
+  const { toggleCall, messages, callStatus, activeTranscript, activeTranscriptText, audioLevel } = useVapi();
 
-  const {
-    microphoneOpen,
-    queueSize: microphoneQueueSize,
-    firstBlob,
-    removeBlob,
-    startMicrophone,
-  } = useMicrophone();
+  // const {
+  //   microphoneOpen,
+  //   queueSize: microphoneQueueSize,
+  //   firstBlob,
+  //   removeBlob,
+  //   startMicrophone,
+  // } = useMicrophone();
 
   /**
    * Queues
    */
-  const {
-    add: addTranscriptPart,
-    queue: transcriptParts,
-    clear: clearTranscriptParts,
-  } = useQueue<{
-    isFinal: boolean;
-    text: string;
-  }>([]);
+  // const {
+  //   add: addTranscriptPart,
+  //   queue: transcriptParts,
+  //   clear: clearTranscriptParts,
+  // } = useQueue<{
+  //   isFinal: boolean;
+  //   text: string;
+  // }>([]);
 
   /**
    * Refs
    */
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
-  const lastLlmMessageHasBeenCleaned = useRef<boolean>(false);
+  // const lastLlmMessageHasBeenCleaned = useRef<boolean>(false);
 
   /**
    * State
    */
-  const [isProcessing, setProcessing] = useState(false);
+  // const [isProcessing, setProcessing] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const assistant = voiceMap(state.ttsOptions.model);
   // const [chatMessages, setChatMessages] = useState([]);
@@ -214,6 +215,7 @@ export default function Conversation() {
     if (!initialLoad) return;
 
     setInitialLoad(false);
+    toggleCall();
     // startMicrophone();
 
     // vapi.start('e88895ad-0b69-4e73-9eaa-c65a9e68d997');
@@ -238,7 +240,7 @@ export default function Conversation() {
     // };
 
     // addMessageData(welcomeMetadata);
-  }, [initialLoad]);
+  }, [initialLoad, toggleCall]);
 
   // const onTranscript = useCallback((data: LiveTranscriptionEvent) => {
   //   const content = utteranceText(data);
@@ -382,7 +384,7 @@ export default function Conversation() {
       <div className="h-full w-full flex justify-center items-center">
         <InitialLoad
           onSubmit={startConversation}
-          connecting={state.connectionReady === false}
+          // connecting={state.connectionReady === false}
         />
       </div>
     );
@@ -393,7 +395,7 @@ export default function Conversation() {
       <div className="flex flex-col h-full w-full">
         <Header
           avatarImage={assistant.avatar}
-          isResponding={llmLoading}
+          // isResponding={llmLoading}
           job="Cognitive Therapist"
           name={assistant.name}
         />
@@ -402,12 +404,16 @@ export default function Conversation() {
             <div className="min-h-full flex flex-col justify-end">
               <div className="grid grid-cols-12">
 
-                {messages?.map((message, i) => {
+                {/* {messages?.map((message, i) => {
                   return <ChatBubble message={message} key={i} />;
-                })}
+                })} */}
 
                 {activeTranscript && (
-                  <RightBubble text={activeTranscript}></RightBubble>
+                  activeTranscript.role === 'assistant' ? (
+                    <LeftBubble text={activeTranscriptText} />
+                  ) : (
+                    <RightBubble text={activeTranscriptText} />
+                  )
                 )}
 
                 <div
@@ -418,12 +424,12 @@ export default function Conversation() {
             </div>
           </div>
         </div>
-        <Controls
+        {/* <Controls
           messages={chatMessages}
           handleSubmit={handleSubmit}
           handleInputChange={handleInputChange}
           input={input}
-        />
+        /> */}
       </div>
     </div>
   );

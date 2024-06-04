@@ -1,5 +1,6 @@
 // import { characterAssistant } from "@/assistants/character.assistant";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+// import Vapi from '@vapi-ai/web';
 
 import {
   Message,
@@ -27,13 +28,27 @@ export function useVapi() {
   const [activeTranscript, setActiveTranscript] =
     useState<TranscriptMessage | null>(null);
 
+  // const [activeMessageText, setActiveMessageText] = useState<string>(null);
+  const activeMessageText = useRef<string>('');
+  const [activeTranscriptText, setActiveTranscriptText] = useState<string>(null);
+
   const [audioLevel, setAudioLevel] = useState(0);
 
   useEffect(() => {
-    const onSpeechStart = () => setIsSpeechActive(true);
+    const onSpeechStart = () => {
+      console.log('speech has started');
+      activeMessageText.current = '';
+      setActiveTranscriptText(null);
+      setActiveTranscript(null);
+      setIsSpeechActive(true);
+    };
     const onSpeechEnd = () => {
       console.log('Speech has ended');
+      activeMessageText.current = '';
+      setActiveTranscriptText(null);
+      setActiveTranscript(null);
       setIsSpeechActive(false);
+      console.log(messages);
     };
 
     const onCallStartHandler = () => {
@@ -51,15 +66,20 @@ export function useVapi() {
     };
 
     const onMessageUpdate = (message: Message) => {
-      console.log('message', message);
+      if (message.type === MessageTypeEnum.MODEL_OUTPUT) {
+        console.log('message', message);
+      }
       if (
         message.type === MessageTypeEnum.TRANSCRIPT &&
         message.transcriptType === TranscriptMessageTypeEnum.PARTIAL
       ) {
+        setActiveTranscriptText(activeMessageText.current + message.transcript + ' ');
         setActiveTranscript(message);
-      } else {
+      } else if (
+        message.type === MessageTypeEnum.CONVERSATION_UPDATE
+      ) {
+        activeMessageText.current = message.conversation[message.conversation.length - 1].content;
         setMessages((prev) => [...prev, message]);
-        setActiveTranscript(null);
       }
     };
 
@@ -115,6 +135,7 @@ export function useVapi() {
     callStatus,
     audioLevel,
     activeTranscript,
+    activeTranscriptText,
     messages,
     start,
     stop,
