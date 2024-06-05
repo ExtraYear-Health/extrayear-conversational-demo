@@ -1,18 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { Button } from '@nextui-org/react';
 
-import { LeftBubble } from '../LeftBubble';
-import { RightBubble } from '../RightBubble';
+import { LeftBubble } from '../../LeftBubble';
+import { RightBubble } from '../../RightBubble';
+import { Header } from '../Header';
 
-import { Header } from './Header';
-
-import { voiceMap } from '@/app/context/Voices';
+import { useChatMessages } from '@/app/components/conversation/Chat/useChatMessages';
 import { MessageRole, TranscriptMessage } from '@/app/lib/conversation.type';
-import { useChatMessages } from '@/app/lib/hooks/useChatMessages';
+import { voiceMap } from '@/app/context/Voices';
 
 export interface ChatProps {
-  transcripts?: TranscriptMessage[];
   onEndCall?(): void;
+  transcripts?: TranscriptMessage[];
 }
 
 export function Chat({ transcripts = [], onEndCall }: ChatProps) {
@@ -21,6 +20,7 @@ export function Chat({ transcripts = [], onEndCall }: ChatProps) {
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
 
   const chatMessages = useChatMessages({
+    mockup: true,
     transcripts,
   });
 

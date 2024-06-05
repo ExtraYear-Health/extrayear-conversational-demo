@@ -3,11 +3,12 @@
 import { useState } from 'react';
 
 import { InitialScreen } from './InitialScreen';
-import { Chat } from './Chat';
+import { Chat } from './Chat/Chat';
 import { EndScreen } from './EndScreen';
 
 import { useVapi } from '@/app/lib/vapi/useVapi';
 import { CallStatus } from '@/app/lib/conversation.type';
+import { envConfig } from '@/app/config/envConfig.client';
 
 export enum ConversationState {
   IDLE = 'idle',
@@ -36,7 +37,13 @@ export function Conversation() {
           assistantId={assistantId}
           isLoading={callStatus === CallStatus.LOADING}
           onSelectAssistant={(id) => setAssistantId(id)}
-          onSubmit={start}
+          onSubmit={() => {
+            if (envConfig.enableMockups) {
+              setState(ConversationState.STARTED);
+            } else {
+              start();
+            }
+          }}
         />
       );
     case ConversationState.STARTED:

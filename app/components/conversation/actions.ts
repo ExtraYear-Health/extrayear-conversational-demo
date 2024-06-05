@@ -19,12 +19,7 @@ export async function getAssistants() {
 
   const data = await response.body.json() as Assistant[];
 
-  return data.map(({ id, name, transcriber, model }) => ({
-    id,
-    name,
-    model,
-    transcriber,
-  }));
+  return data;
 }
 
 export async function getAssistant(id: string) {

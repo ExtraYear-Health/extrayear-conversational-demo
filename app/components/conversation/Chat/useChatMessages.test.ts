@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 
-import { MessageRole, TranscriptMessageType } from '../conversation.type';
+import { MessageRole, TranscriptMessageType } from '../../../lib/conversation.type';
 
 import { useChatMessages } from './useChatMessages';
 

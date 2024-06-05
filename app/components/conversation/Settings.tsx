@@ -6,6 +6,11 @@ import { Select, SelectItem } from '@nextui-org/react';
 import { useActionState } from '../../lib/hooks/useActionState';
 
 import { getAssistants } from './actions';
+import { assistantsMockup } from './assistants.mockup';
+
+import { envConfig } from '@/app/config/envConfig.client';
+
+const defaultAssistants = envConfig.enableMockups ? assistantsMockup : [];
 
 export interface SettingsProps {
   onSelectAssistant(id): void;
@@ -13,10 +18,12 @@ export interface SettingsProps {
 }
 
 export function Settings({ assistantId, onSelectAssistant }: SettingsProps) {
-  const { data, dispatch, loading } = useActionState(getAssistants, []);
+  const { data, dispatch, loading } = useActionState(getAssistants, defaultAssistants);
 
   useEffect(() => {
-    dispatch();
+    if (!envConfig.enableMockups) {
+      dispatch();
+    }
   }, []);
 
   return (
