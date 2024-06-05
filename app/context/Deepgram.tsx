@@ -96,7 +96,7 @@ const initialState: DeepgramState = {
 
   // Voice Activity Detection options
   vadOptions: {
-    voiceProbThreshold: 0.7,
+    voiceProbThreshold: 0.9,
   },
 };
 

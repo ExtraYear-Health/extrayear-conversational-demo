@@ -20,7 +20,7 @@ import { useDeepgram, voiceMap } from '../context/Deepgram';
 import { useMessageData } from '../context/MessageMetadata';
 import { useMicrophone } from '../context/Microphone';
 import { useAudioStore } from '../context/AudioStore';
-import { useCobraVAD } from '../lib/picovoice/useCobraVAD';
+import useReactVAD from '../lib/vad-react/useReactVAD';
 
 import { RightBubble } from './RightBubble';
 import { Controls } from './Controls';
@@ -191,24 +191,24 @@ export default function Conversation() {
     });
   }, [append]);
 
-  const { isSpeeching } = useCobraVAD({
+  const { isSpeeching } = useReactVAD({
     listening: microphoneOpen,
     voiceProbThreshold: state.vadOptions?.voiceProbThreshold,
     silenceThresholdMs: state.sttOptions.utterance_end_ms,
-    onSpeechStart() {
+    onSpeechStart: useCallback(() => {
       clearTranscriptParts();
       if (!player?.ended) {
         stopAudio();
       }
-    },
-    onSpeechEnd() {
+    }, [clearTranscriptParts, player?.ended, stopAudio]),
+    onSpeechEnd: useCallback(() => {
       if (currentUtterance) {
         console.log('Send message to LLM');
         appendUserSpeechMessage(currentUtterance);
         clearTranscriptParts();
         setCurrentUtterance(undefined);
       }
-    },
+    }, [appendUserSpeechMessage, clearTranscriptParts, currentUtterance]),
   });
 
   useEffect(() => {
