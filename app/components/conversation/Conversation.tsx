@@ -20,7 +20,10 @@ const initialState = ConversationState.IDLE;
 export function Conversation() {
   const [state, setState] = useState<ConversationState>(initialState);
 
+  const [assistantId, setAssistantId] = useState<string>();
+
   const { start, callStatus, transcripts = [], stop } = useVapi({
+    assistantId,
     onCallStarted(_call) {
       setState(ConversationState.STARTED);
     },
@@ -30,8 +33,10 @@ export function Conversation() {
     case ConversationState.IDLE:
       return (
         <InitialScreen
-          onSubmit={start}
+          assistantId={assistantId}
           isLoading={callStatus === CallStatus.LOADING}
+          onSelectAssistant={(id) => setAssistantId(id)}
+          onSubmit={start}
         />
       );
     case ConversationState.STARTED:

@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import localFont from 'next/font/local';
 import type { Metadata, Viewport } from 'next';
 
+import { Providers } from './providers';
 import { ToastContextProvider } from './context/Toast';
 
 import 'react-toastify/dist/ReactToastify.css';
@@ -43,9 +44,11 @@ export default function RootLayout({
           inter.className,
         )}`}
       >
-        <ToastContextProvider>
-          {children}
-        </ToastContextProvider>
+        <Providers>
+          <ToastContextProvider>
+            {children}
+          </ToastContextProvider>
+        </Providers>
       </body>
     </html>
   );
