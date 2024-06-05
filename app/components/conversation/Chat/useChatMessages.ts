@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 
-import { MessageRole, TranscriptMessage } from '../conversation.type';
+import { MessageRole, TranscriptMessage } from '../../../lib/conversation.type';
+
+import { chatMessagesMockup } from './chatMessages.mockup';
+
+import { envConfig } from '@/app/config/envConfig.client';
 
 export type ChatMessage = {
   role: MessageRole;
@@ -38,5 +42,8 @@ export function useChatMessages({ transcripts = [] }: UseChatMessagesProps): Cha
     }, [])
   , [transcripts]);
 
+  if (envConfig.enableMockups) {
+    return chatMessagesMockup;
+  }
   return chatMessages;
 }
