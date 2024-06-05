@@ -4,6 +4,8 @@ import { MessageRole, TranscriptMessage } from '../../../lib/conversation.type';
 
 import { chatMessagesMockup } from './chatMessages.mockup';
 
+import { envConfig } from '@/app/config/envConfig.client';
+
 export type ChatMessage = {
   role: MessageRole;
   timestamp: string;
@@ -11,7 +13,6 @@ export type ChatMessage = {
 };
 
 export interface UseChatMessagesProps {
-  mockup?: boolean;
   transcripts?: Omit<TranscriptMessage, 'type'>[];
 }
 
@@ -19,7 +20,7 @@ export interface UseChatMessagesProps {
  * Hook to join consecutive transcripts done by the same user role
  * Each ChatMessage represents a chat bubble.
  */
-export function useChatMessages({ mockup, transcripts = [] }: UseChatMessagesProps): ChatMessage[] {
+export function useChatMessages({ transcripts = [] }: UseChatMessagesProps): ChatMessage[] {
   const chatMessages = useMemo(() =>
     transcripts.reduce<ChatMessage[]>((acc, transcript) => {
       const lastMessage = acc.at(-1);
@@ -41,7 +42,7 @@ export function useChatMessages({ mockup, transcripts = [] }: UseChatMessagesPro
     }, [])
   , [transcripts]);
 
-  if (mockup) {
+  if (envConfig.enableMockups) {
     return chatMessagesMockup;
   }
   return chatMessages;

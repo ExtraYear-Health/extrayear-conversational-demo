@@ -20,7 +20,6 @@ export function Chat({ transcripts = [], onEndCall }: ChatProps) {
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
 
   const chatMessages = useChatMessages({
-    mockup: true,
     transcripts,
   });
 
