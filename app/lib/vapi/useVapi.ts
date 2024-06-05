@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
+import { toast } from 'react-toastify';
 
 import { CallStatus, MessageTypeEnum, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
 
@@ -67,7 +68,10 @@ export function useVapi({ onCallStarted }: UseVapiProps = {}) {
 
     const onError = (e: any) => {
       setCallStatus(CallStatus.INACTIVE);
-      console.error(e);
+
+      if ('error' in e) {
+        toast.error(e.error?.message);
+      }
     };
 
     vapi.on('speech-start', onSpeechStart);
