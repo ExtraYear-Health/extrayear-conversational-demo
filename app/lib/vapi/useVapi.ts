@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
 import { toast } from 'react-toastify';
 
@@ -17,6 +17,8 @@ export function useVapi({ onCallStarted }: UseVapiProps = {}) {
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
 
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+
+  const activeTranscript = useRef<string>('');
 
   const [audioLevel, setAudioLevel] = useState(0);
 
@@ -53,15 +55,22 @@ export function useVapi({ onCallStarted }: UseVapiProps = {}) {
           }
 
           if (lastTranscript.role !== message.role) {
+            activeTranscript.current = '';
             return [...prevState, message];
+          }
+
+          if (message.transcriptType === TranscriptMessageType.FINAL) {
+            activeTranscript.current = activeTranscript.current + message.transcript + ' ';
+            return [...prevState];
           }
 
           // Replace the last partial transcript until it's final
           if (lastTranscript.transcriptType === TranscriptMessageType.PARTIAL) {
+            message.transcript = activeTranscript.current + message.transcript;
             return [...prevState.slice(0, -1), message];
           }
 
-          return [...prevState, message];
+          return [...prevState];
         });
       }
     };
