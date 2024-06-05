@@ -6,7 +6,7 @@ type Action<S> = (state: Awaited<S>) => S | Promise<S>;
  * This is a temporary hook for handling server actions. Once we run on the newer version of Next.js and React we will be able to use useActionState from react directly.
  * https://react.dev/reference/react/useActionState
  */
-export function useActionState<S>(action: Action<S>, initialState: Awaited<S>) {
+export function useActionState<S>(action: Action<S>, initialState?: Awaited<S>) {
   const [loading, startTransition] = useTransition();
   const [error, setError] = useState();
   const [data, setData] = useState(initialState);

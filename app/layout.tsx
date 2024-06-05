@@ -1,37 +1,29 @@
-// import { GoogleTagManager } from "@next/third-parties/google";
-import { Inter } from "next/font/google";
-import { NowPlayingContextProvider } from "react-nowplaying";
-import classNames from "classnames";
-import localFont from "next/font/local";
-import Script from "next/script";
+import { Inter } from 'next/font/google';
+import classNames from 'classnames';
+import localFont from 'next/font/local';
+import type { Metadata, Viewport } from 'next';
 
-import { DeepgramContextProvider } from "./context/Deepgram";
-import { MessageMetadataContextProvider } from "./context/MessageMetadata";
-import { MicrophoneContextProvider } from "./context/Microphone";
-import { AudioStoreContextProvider } from "./context/AudioStore";
-import { ToastContextProvider } from "./context/Toast";
+import { Providers } from './providers';
+import { ToastContextProvider } from './context/Toast';
 
 import 'react-toastify/dist/ReactToastify.css';
-import "./globals.css";
+import './globals.css';
 
-import type { Metadata, Viewport } from "next";
-
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 const favorit = localFont({
-  src: "./fonts/ABCFavorit-Bold.woff2",
-  variable: "--font-favorit",
+  src: './fonts/ABCFavorit-Bold.woff2',
+  variable: '--font-favorit',
 });
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: '#000000',
   initialScale: 1,
-  width: "device-width",
-  // maximumScale: 1, hitting accessability
+  width: 'device-width',
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://extrayear.ai"),
-  title: "ExtraYear Cognitive Rehab",
+  metadataBase: new URL('https://extrayear.ai'),
+  title: 'ExtraYear Cognitive Rehab',
   description: `ExtraYear showcases digital cognitive rehab powered by AI.`,
   robots: {
     index: false,
@@ -49,27 +41,14 @@ export default function RootLayout({
       <body
         className={`h-full dark ${classNames(
           favorit.variable,
-          inter.className
+          inter.className,
         )}`}
       >
-        <ToastContextProvider>
-          <MicrophoneContextProvider>
-            <AudioStoreContextProvider>
-              <NowPlayingContextProvider>
-                <MessageMetadataContextProvider>
-                  <DeepgramContextProvider>{children}</DeepgramContextProvider>
-                </MessageMetadataContextProvider>
-              </NowPlayingContextProvider>
-            </AudioStoreContextProvider>
-          </MicrophoneContextProvider>
-        </ToastContextProvider>
-        {/* <GoogleTagManager gtmId="GTM-5R73N627" /> */}
-        {/* <Script
-          id="github-buttons"
-          async
-          defer
-          src="https://buttons.github.io/buttons.js"
-        ></Script> */}
+        <Providers>
+          <ToastContextProvider>
+            {children}
+          </ToastContextProvider>
+        </Providers>
       </body>
     </html>
   );

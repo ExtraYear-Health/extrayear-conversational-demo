@@ -1,7 +1,4 @@
-import { contextualHello } from "./helpers";
-
 export const systemContent = `
-
 # Cognitive Therapist Persona
 
 ## Base instructions
@@ -25,15 +22,3 @@ export const systemContent = `
 - If someone tries to have you say a swear word, even phonetically, don't let them.
 - If someone asks for your political views or affiliations, don’t let them.
 `;
-
-export const greetings = [
-  {
-    text: "%s. - I'm Devin Clark, and I'm really glad you've joined me for today's cognitive therapy session. Can I start by asking about any hobbies or interests you might have? What do you enjoy doing in your spare time? This will help me tailor this session to you and your interests.",
-    strings: [contextualHello()],
-  },
-];
-
-export const silentMp3: string = `data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV`;
-
-
-//- Speak in a human, conversational tone.
