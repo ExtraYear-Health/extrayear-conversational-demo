@@ -1,4 +1,4 @@
-export enum MessageTypeEnum {
+export enum MessageType {
   TRANSCRIPT = 'transcript',
   FUNCTION_CALL = 'function-call',
   FUNCTION_CALL_RESULT = 'function-call-result',
@@ -19,7 +19,7 @@ export enum TranscriptMessageType {
 }
 
 export interface TranscriptMessage {
-  type: MessageTypeEnum.TRANSCRIPT;
+  type: MessageType.TRANSCRIPT;
   role: MessageRole;
   transcriptType: TranscriptMessageType;
   transcript: string;
@@ -27,7 +27,7 @@ export interface TranscriptMessage {
 }
 
 export interface FunctionCallMessage {
-  type: MessageTypeEnum.FUNCTION_CALL;
+  type: MessageType.FUNCTION_CALL;
   functionCall: {
     name: string;
     parameters: any;
@@ -35,7 +35,7 @@ export interface FunctionCallMessage {
 }
 
 export interface FunctionCallResultMessage {
-  type: MessageTypeEnum.FUNCTION_CALL_RESULT;
+  type: MessageType.FUNCTION_CALL_RESULT;
   functionCallResult: {
     forwardToClientEnabled?: boolean;
     result: any;

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
 import { toast } from 'react-toastify';
 
-import { CallStatus, MessageTypeEnum, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
+import { CallStatus, MessageType, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
 
 import { vapi } from './vapi.sdk';
 
@@ -45,7 +45,7 @@ export function useVapi({ onCallStarted, assistantId }: UseVapiProps = {}) {
     };
 
     const onMessageUpdate = (message: Message) => {
-      if (message.type === MessageTypeEnum.TRANSCRIPT) {
+      if (message.type === MessageType.TRANSCRIPT) {
         setTranscripts((prevState) => {
           const lastTranscript = prevState.at(-1);
 
