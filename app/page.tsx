@@ -1,7 +1,5 @@
 'use client';
 
-export const runtime = 'edge';
-
 import { NextUIProvider } from '@nextui-org/react';
 
 import { Conversation } from './components/conversation/Conversation';

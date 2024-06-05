@@ -1,6 +1,5 @@
 'use client';
 
-import { isBrowser } from 'react-device-detect';
 import { Button } from '@nextui-org/react';
 import React from 'react';
 
@@ -31,7 +30,7 @@ export const InitialScreen = ({ onSubmit, isLoading }: InitialScreenProps) => {
               size="lg"
               isLoading={isLoading}
             >
-              {isLoading ? 'Loading...' : `${isBrowser ? 'Click' : 'Tap'} here to start`}
+              {isLoading ? 'Loading...' : `Click here to start`}
             </Button>
           </div>
         </div>

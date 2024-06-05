@@ -28,7 +28,7 @@ export const InitialLoad = ({ onSubmit }: InitialLoadProps) => {
             onClick={onSubmit}
             size="lg"
           >
-            {`${isBrowser ? 'Click' : 'Tap'} here to start`}
+            Click here to start
           </Button>
         </div>
       </div>
