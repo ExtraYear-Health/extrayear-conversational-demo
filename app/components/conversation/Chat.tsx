@@ -8,6 +8,7 @@ import { Header } from './Header';
 
 import { voiceMap } from '@/app/context/Voices';
 import { MessageRole, TranscriptMessage } from '@/app/lib/conversation.type';
+import { useChatMessages } from '@/app/lib/hooks/useChatMessages';
 
 export interface ChatProps {
   transcripts?: TranscriptMessage[];
@@ -16,6 +17,8 @@ export interface ChatProps {
 
 export function Chat({ transcripts = [], onEndCall }: ChatProps) {
   const assistant = voiceMap('aura-asteria-en');
+
+  const chatMessages = useChatMessages({ transcripts });
 
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
 
@@ -45,22 +48,22 @@ export function Chat({ transcripts = [], onEndCall }: ChatProps) {
           <div className="h-full overflow-y-auto">
             <div className="min-h-full flex flex-col justify-end">
               <div className="grid grid-cols-12">
-                {transcripts.map((transcript) => {
-                  if (transcript.role === MessageRole.ASSISTANT) {
+                {chatMessages.map((chatMessage) => {
+                  if (chatMessage.role === MessageRole.ASSISTANT) {
                     return (
                       <LeftBubble
-                        key={transcript.timestamp}
-                        text={transcript.transcript}
-                        timestamp={transcript.timestamp}
+                        key={chatMessage.timestamp}
+                        text={chatMessage.content}
+                        timestamp={chatMessage.timestamp}
                       />
                     );
                   }
 
-                  if (transcript.role === MessageRole.USER) {
+                  if (chatMessage.role === MessageRole.USER) {
                     return (
                       <RightBubble
-                        key={transcript.timestamp}
-                        text={transcript.transcript}
+                        key={chatMessage.timestamp}
+                        text={chatMessage.content}
                       />
                     );
                   }
