@@ -9,10 +9,11 @@ import { CallStatus, MessageTypeEnum, TranscriptMessage, TranscriptMessageType, 
 import { vapi } from './vapi.sdk';
 
 export interface UseVapiProps {
+  assistantId?: string;
   onCallStarted?: (call: Call) => void;
 }
 
-export function useVapi({ onCallStarted }: UseVapiProps = {}) {
+export function useVapi({ onCallStarted, assistantId }: UseVapiProps = {}) {
   const [call, setCall] = useState<Call>();
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
 
@@ -22,7 +23,7 @@ export function useVapi({ onCallStarted }: UseVapiProps = {}) {
 
   useEffect(() => {
     const onSpeechStart = () => {
-      console.log('speech has started');
+      console.log('Speech has started');
     };
     const onSpeechEnd = () => {
       console.log('Speech has ended');
@@ -97,25 +98,25 @@ export function useVapi({ onCallStarted }: UseVapiProps = {}) {
   const start = useCallback(async () => {
     setCallStatus(CallStatus.LOADING);
 
-    const call = await vapi.start('e88895ad-0b69-4e73-9eaa-c65a9e68d997');
+    const call = await vapi.start(assistantId);
 
     if (call) {
       setCall(call);
     }
-  }, []);
+  }, [assistantId]);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     setCallStatus(CallStatus.LOADING);
     vapi.stop();
-  };
+  }, []);
 
-  const toggleCall = () => {
+  const toggleCall = useCallback(() => {
     if (callStatus == CallStatus.ACTIVE) {
       stop();
     } else {
       start();
     }
-  };
+  }, [callStatus, start, stop]);
 
   return {
     callStatus,
