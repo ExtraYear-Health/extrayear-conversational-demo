@@ -4,18 +4,19 @@ import { Button } from '@nextui-org/react';
 import { LeftBubble } from '../../LeftBubble';
 import { RightBubble } from '../../RightBubble';
 import { Header } from '../Header';
+import { useConversation } from '../context';
 
 import { useChatMessages } from '@/app/components/conversation/Chat/useChatMessages';
 import { MessageRole, TranscriptMessage } from '@/app/lib/conversation.type';
-import { voiceMap } from '@/app/context/Voices';
 
 export interface ChatProps {
+  isAssistantSpeeching?: boolean;
   onEndCall?(): void;
   transcripts?: TranscriptMessage[];
 }
 
-export function Chat({ transcripts = [], onEndCall }: ChatProps) {
-  const assistant = voiceMap('aura-asteria-en');
+export function Chat({ transcripts = [], onEndCall, isAssistantSpeeching }: ChatProps) {
+  const { assistant } = useConversation();
 
   const chatBottomRef = useRef<null | HTMLDivElement>(null);
 
@@ -40,8 +41,8 @@ export function Chat({ transcripts = [], onEndCall }: ChatProps) {
     <div className="h-full w-full antialiased max-w-7xl mx-auto">
       <div className="flex flex-col h-full w-full">
         <Header
+          isResponding={isAssistantSpeeching}
           job="Cognitive Therapist"
-          avatarImage={assistant.avatar}
           name={assistant.name}
         />
 
