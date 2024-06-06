@@ -5,11 +5,11 @@ export const assistantsMockup = [
     id: '1',
     name: 'Mock Assistant',
     model: {
-      model: 'mock',
+      model: 'gpt-3.5-turbo',
     },
     transcriber: {
       provider: 'deepgram',
-      model: 'mock',
+      model: 'nova-2',
     },
   },
 ] as Assistant[];

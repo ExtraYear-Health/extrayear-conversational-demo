@@ -6,24 +6,15 @@ import { Select, SelectItem } from '@nextui-org/react';
 import { useActionState } from '../../lib/hooks/useActionState';
 
 import { getAssistants } from './actions';
-import { assistantsMockup } from './assistants.mockup';
+import { useConversation } from './context';
 
-import { envConfig } from '@/app/config/envConfig.client';
+export function Settings() {
+  const { assistantId, setAssistantId } = useConversation();
 
-const defaultAssistants = envConfig.enableMockups ? assistantsMockup : [];
-
-export interface SettingsProps {
-  onSelectAssistant(id): void;
-  assistantId?: string;
-}
-
-export function Settings({ assistantId, onSelectAssistant }: SettingsProps) {
-  const { data, dispatch, loading } = useActionState(getAssistants, defaultAssistants);
+  const { data, dispatch, loading } = useActionState(getAssistants, []);
 
   useEffect(() => {
-    if (!envConfig.enableMockups) {
-      dispatch();
-    }
+    dispatch();
   }, []);
 
   return (
@@ -32,7 +23,7 @@ export function Settings({ assistantId, onSelectAssistant }: SettingsProps) {
         isDisabled={loading}
         isLoading={loading}
         label="Assistant"
-        onChange={(event) => onSelectAssistant(event.target.value)}
+        onChange={(event) => setAssistantId(event.target.value)}
         placeholder="Select your assistant"
         value={assistantId}
       >

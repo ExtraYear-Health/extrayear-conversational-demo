@@ -1,29 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-
 import { InitialScreen } from './InitialScreen';
 import { Chat } from './Chat/Chat';
 import { EndScreen } from './EndScreen';
+import { ConversationProvider, ConversationState, useConversation } from './context';
 
 import { useVapi } from '@/app/lib/vapi/useVapi';
 import { CallStatus } from '@/app/lib/conversation.type';
 import { envConfig } from '@/app/config/envConfig.client';
 
-export enum ConversationState {
-  IDLE = 'idle',
-  STARTED = 'started',
-  ENDED = 'ended',
-}
+function Conversation() {
+  const { assistantId, state, setState } = useConversation();
 
-const initialState = ConversationState.IDLE;
-
-export function Conversation() {
-  const [state, setState] = useState<ConversationState>(initialState);
-
-  const [assistantId, setAssistantId] = useState<string>();
-
-  const { start, callStatus, transcripts = [], stop } = useVapi({
+  const { start, callStatus, transcripts = [], stop, isAssistantSpeeching } = useVapi({
     assistantId,
     onCallStarted(_call) {
       setState(ConversationState.STARTED);
@@ -34,9 +23,7 @@ export function Conversation() {
     case ConversationState.IDLE:
       return (
         <InitialScreen
-          assistantId={assistantId}
           isLoading={callStatus === CallStatus.LOADING}
-          onSelectAssistant={(id) => setAssistantId(id)}
           onSubmit={() => {
             if (envConfig.enableMockups) {
               setState(ConversationState.STARTED);
@@ -50,6 +37,7 @@ export function Conversation() {
       return (
         <Chat
           transcripts={transcripts}
+          isAssistantSpeeching={isAssistantSpeeching}
           onEndCall={() => {
             stop();
             setState(ConversationState.ENDED);
@@ -62,3 +50,13 @@ export function Conversation() {
       return null;
   }
 }
+
+function ConversationContextAware() {
+  return (
+    <ConversationProvider>
+      <Conversation />
+    </ConversationProvider>
+  );
+}
+
+export { ConversationContextAware as Conversation };

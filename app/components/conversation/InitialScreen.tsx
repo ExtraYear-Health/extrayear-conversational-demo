@@ -4,20 +4,19 @@ import { Button } from '@nextui-org/react';
 import React from 'react';
 
 import { Settings } from './Settings';
+import { useConversation } from './context';
 
 export interface InitialScreenProps {
   isLoading?: boolean;
-  onSelectAssistant(id): void;
   onSubmit: () => void;
-  assistantId: string;
 }
 
 export const InitialScreen = ({
   onSubmit,
   isLoading,
-  onSelectAssistant,
-  assistantId,
 }: InitialScreenProps) => {
+  const { assistantId } = useConversation();
+
   return (
     <div className="h-full w-full flex justify-center items-center">
       <div className="col-start-1 col-end-13 sm:col-start-2 sm:col-end-12 md:col-start-3 md:col-end-11 lg:col-start-4 lg:col-end-10 p-3 mb-1/2">
@@ -31,7 +30,7 @@ export const InitialScreen = ({
             <p className="text-center text-default-400">Conversations for Cognitive Health</p>
           </div>
           <div className="my-5">
-            <Settings assistantId={assistantId} onSelectAssistant={onSelectAssistant} />
+            <Settings />
           </div>
           <div className="mt-6">
             <Button
