@@ -4,7 +4,7 @@ import { ChatMessage } from '@/app/components/conversation/Chat/useChatMessages'
 export const chatMessagesMockup: ChatMessage[] = [
   {
     role: MessageRole.ASSISTANT,
-    content: 'Hello! How can I help you today?',
+    content: 'Hello! **I\'m Devin.** How can I help you today?',
     timestamp: '2024-06-05T14:30:00.00-03:00',
   },
   {
@@ -34,7 +34,7 @@ export const chatMessagesMockup: ChatMessage[] = [
   },
   {
     role: MessageRole.ASSISTANT,
-    content: 'Great! Let me know how you feel after the exercise.',
+    content: `![exercise](/cognitive-exercise-sample.png)`,
     timestamp: '2024-06-05T14:37:00.00-03:00',
   },
 ];

@@ -26,6 +26,12 @@ export interface TranscriptMessage {
   timestamp?: string;
 }
 
+export interface ImageMessage {
+  role: MessageRole;
+  timestamp?: string;
+  transcript: string;
+}
+
 export interface FunctionCallMessage {
   type: MessageType.FUNCTION_CALL;
   functionCall: {
