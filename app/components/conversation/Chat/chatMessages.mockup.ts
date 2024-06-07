@@ -34,7 +34,7 @@ export const chatMessagesMockup: ChatMessage[] = [
   },
   {
     role: MessageRole.ASSISTANT,
-    content: `![exercise](/cognitive-exercise-sample.png)`,
+    content: `![exercise](/ex-figures.png)`,
     timestamp: '2024-06-05T14:37:00.00-03:00',
   },
 ];
