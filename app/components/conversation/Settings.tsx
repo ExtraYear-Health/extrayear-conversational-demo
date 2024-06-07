@@ -31,8 +31,8 @@ export function Settings() {
           <SelectItem key={assistant.id} value={assistant.id} textValue={assistant.name}>
             <div className="flex flex-col gap-1">
               <span className="text-small">{assistant.name}</span>
-              <span className="text-tiny text-default-400">Model: {assistant.model.model}</span>
-              <span className="text-tiny text-default-400">Transcriber: {assistant.transcriber.provider} / {assistant.transcriber.model}</span>
+              <span className="text-tiny text-default-400">Model: {assistant.model?.model ?? ''}</span>
+              <span className="text-tiny text-default-400">Transcriber: {assistant.transcriber?.provider ?? ''} / {assistant.transcriber?.model ?? ''}</span>
             </div>
           </SelectItem>
         ))}
