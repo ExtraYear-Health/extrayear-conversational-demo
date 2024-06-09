@@ -17,9 +17,11 @@ export const LeftBubble = ({ text, timestamp }: LeftBubbleProps) => {
               <TextContent text={text} />
             </div>
             <div className="flex absolute right-0 bottom-0">
-              <span className="text-xs font-normal text-white/50 pr-4 pb-2">
-                {DateTime.fromISO(timestamp).toFormat('h:mm a')}
-              </span>
+              {timestamp && (
+                <span className="text-xs font-normal text-white/50 pr-4 pb-2">
+                  {DateTime.fromISO(timestamp).toFormat('h:mm a')}
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -12,7 +12,7 @@ import { envConfig } from '@/app/config/envConfig.client';
 function Conversation() {
   const { assistantId, state, setState } = useConversation();
 
-  const { start, callStatus, transcripts = [], stop, isAssistantSpeeching } = useVapi({
+  const { start, callStatus, transcripts = [], stop, isAssistantSpeeching, audioLevel } = useVapi({
     assistantId,
     onCallStarted(_call) {
       setState(ConversationState.STARTED);
@@ -38,6 +38,7 @@ function Conversation() {
         <Chat
           transcripts={transcripts}
           isAssistantSpeeching={isAssistantSpeeching}
+          audioLevel={audioLevel}
           onEndCall={() => {
             stop();
             setState(ConversationState.ENDED);
