@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 import { MessageRole, TranscriptMessage } from '../../../lib/conversation.type';
 
@@ -13,6 +14,7 @@ function containsImage(content: string) {
 }
 
 export type ChatMessage = {
+  id: string;
   role: MessageRole;
   timestamp: string;
   content: string;
@@ -31,13 +33,13 @@ export function useChatMessages({ transcripts = [] }: UseChatMessagesProps): Cha
   const chatMessages = useMemo(() => transcripts.reduce<ChatMessage[]>((acc, transcript) => {
     const lastMessage = acc.at(-1);
 
-    if (
-      !lastMessage ||
+    if (!lastMessage ||
       containsImage(lastMessage.content) ||
       containsImage(transcript.transcript) ||
       lastMessage.role !== transcript.role
     ) {
       return acc.concat({
+        id: uuidv4(),
         timestamp: transcript.timestamp,
         role: transcript.role,
         content: transcript.transcript,
