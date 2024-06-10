@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
 import { toast } from 'react-toastify';
 
-import { CallStatus, MessageType, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
+import { CallStatus, MessageRole, MessageType, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
 
 import { vapi } from './vapi.sdk';
 
@@ -68,6 +68,17 @@ export function useVapi({ onCallStarted, assistantId }: UseVapiProps = {}) {
 
           return [...prevState, message];
         });
+      }
+
+      if (message.type === MessageType.FUNCTION_CALL && message.functionCall.name === 'SendImage') {
+        const src = message.functionCall.parameters.src;
+        setTranscripts((prevState) => prevState.concat({
+          role: MessageRole.ASSISTANT,
+          timestamp: new Date().toISOString(),
+          transcript: `![exercise](${src})`,
+          transcriptType: TranscriptMessageType.FINAL,
+          type: MessageType.TRANSCRIPT,
+        }));
       }
     };
 

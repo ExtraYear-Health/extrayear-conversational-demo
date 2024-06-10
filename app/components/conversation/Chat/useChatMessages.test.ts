@@ -40,6 +40,12 @@ describe('useChatMessages', () => {
         },
         {
           role: MessageRole.ASSISTANT,
+          timestamp: '2024-06-05T14:36:03.00-03:00',
+          transcript: '![exercise](/cognitive-exercise-sample.png)',
+          transcriptType: TranscriptMessageType.FINAL,
+        },
+        {
+          role: MessageRole.ASSISTANT,
           timestamp: '2024-06-05T14:40:00.00-03:00',
           transcript: 'How is everything going?',
           transcriptType: TranscriptMessageType.FINAL,
@@ -57,6 +63,11 @@ describe('useChatMessages', () => {
         role: MessageRole.USER,
         timestamp: '2024-06-05T14:35:00.00-03:00',
         content: 'Hey. I\'m doing great. Thanks for asking.',
+      },
+      {
+        role: MessageRole.ASSISTANT,
+        timestamp: '2024-06-05T14:36:03.00-03:00',
+        content: '![exercise](/cognitive-exercise-sample.png)',
       },
       {
         role: MessageRole.ASSISTANT,
