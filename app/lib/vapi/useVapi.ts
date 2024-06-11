@@ -11,9 +11,10 @@ import { vapi } from './vapi.sdk';
 export interface UseVapiProps {
   assistantId?: string;
   onCallStarted?: (call: Call) => void;
+  onCallEnded?: () => void;
 }
 
-export function useVapi({ onCallStarted, assistantId }: UseVapiProps = {}) {
+export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProps = {}) {
   const [isAssistantSpeeching, setIsAssistantSpeeching] = useState(false);
 
   const [call, setCall] = useState<Call>();
@@ -42,6 +43,7 @@ export function useVapi({ onCallStarted, assistantId }: UseVapiProps = {}) {
     const onCallEnd = () => {
       console.log('Call has stopped');
       setCallStatus(CallStatus.INACTIVE);
+      onCallEnded?.();
     };
 
     const onVolumeLevel = (volume: number) => {

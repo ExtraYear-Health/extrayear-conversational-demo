@@ -17,6 +17,9 @@ function Conversation() {
     onCallStarted(_call) {
       setState(ConversationState.STARTED);
     },
+    onCallEnded() {
+      setState(ConversationState.ENDED);
+    },
   });
 
   switch (state) {
@@ -41,7 +44,6 @@ function Conversation() {
           audioLevel={audioLevel}
           onEndCall={() => {
             stop();
-            setState(ConversationState.ENDED);
           }}
         />
       );
