@@ -1,7 +1,7 @@
 'use client';
 
-import { Bounce, ToastContainer, toast } from 'react-toastify';
 import { createContext, useContext } from 'react';
+import { Bounce, toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 type ToastContext = {
@@ -19,13 +19,7 @@ const ToastContextProvider = ({ children }: ToastContextInterface) => {
     <ToastContext.Provider value={{ toast }}>
       <>
         {children}
-        <ToastContainer
-          position="bottom-center"
-          autoClose={8000}
-          theme="dark"
-          limit={1}
-          transition={Bounce}
-        />
+        <ToastContainer position="bottom-center" autoClose={8000} theme="dark" limit={1} transition={Bounce} />
       </>
     </ToastContext.Provider>
   );

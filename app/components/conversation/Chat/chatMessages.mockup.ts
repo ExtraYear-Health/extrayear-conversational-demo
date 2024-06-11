@@ -1,11 +1,11 @@
-import { MessageRole } from '@/app/lib/conversation.type';
-import { ChatMessage } from '@/app/components/conversation/Chat/useChatMessages';
+import { ChatMessage } from '@/components/conversation/Chat/useChatMessages';
+import { MessageRole } from '@/lib/conversation.type';
 
 export const chatMessagesMockup: ChatMessage[] = [
   {
     id: '1',
     role: MessageRole.ASSISTANT,
-    content: 'Hello! **I\'m Devin.** How can I help you today?',
+    content: "Hello! **I'm Devin.** How can I help you today?",
     timestamp: '2024-06-05T14:30:00.00-03:00',
   },
   {
@@ -29,7 +29,8 @@ export const chatMessagesMockup: ChatMessage[] = [
   {
     id: '5',
     role: MessageRole.ASSISTANT,
-    content: 'I understand. Let’s start by taking a few deep breaths together. Inhale for 4 seconds, hold for 7 seconds, and exhale for 8 seconds. Repeat this 4-7-8 breathing exercise 4 times.',
+    content:
+      'I understand. Let’s start by taking a few deep breaths together. Inhale for 4 seconds, hold for 7 seconds, and exhale for 8 seconds. Repeat this 4-7-8 breathing exercise 4 times.',
     timestamp: '2024-06-05T14:35:00.00-03:00',
   },
   {

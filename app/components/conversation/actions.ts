@@ -3,9 +3,9 @@
 import { Assistant } from '@vapi-ai/web/dist/api';
 import { Client } from 'undici';
 
-import { assistantsMockup } from './assistants.mockup';
+import { envConfig } from '@/config/envConfig.client';
 
-import { envConfig } from '@/app/config/envConfig.client';
+import { assistantsMockup } from './assistants.mockup';
 
 const vapiKey = process.env.VAPI_PRIVATE_API_KEY;
 const vapiClient = new Client('https://api.vapi.ai');
@@ -25,7 +25,7 @@ export async function getAssistants() {
     headers,
   });
 
-  const data = await response.body.json() as Assistant[];
+  const data = (await response.body.json()) as Assistant[];
 
   return data;
 }
@@ -41,7 +41,7 @@ export async function getAssistant(id: string) {
     headers,
   });
 
-  const data = await response.body.json() as Assistant;
+  const data = (await response.body.json()) as Assistant;
 
   return data;
 }

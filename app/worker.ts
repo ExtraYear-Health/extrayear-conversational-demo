@@ -1,6 +1,5 @@
 // @ts-nocheck
-
-import { pipeline, env } from "@xenova/transformers";
+import { env, pipeline } from '@xenova/transformers';
 
 // Skip local model check
 env.allowLocalModels = false;
@@ -11,18 +10,16 @@ class PipelineSingleton {
 
   static async getInstance(progress_callback = null) {
     if (this.instance === null) {
-      this.instance = pipeline(
-        "text-classification",
-        "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
-        { progress_callback }
-      );
+      this.instance = pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english', {
+        progress_callback,
+      });
     }
     return this.instance;
   }
 }
 
 // Listen for messages from the main thread
-self.addEventListener("message", async (event) => {
+self.addEventListener('message', async (event) => {
   // Retrieve the classification pipeline. When called for the first time,
   // this will load the pipeline and save it for future use.
   let classifier = await PipelineSingleton.getInstance((x) => {
@@ -36,7 +33,7 @@ self.addEventListener("message", async (event) => {
 
   // Send the output back to the main thread
   self.postMessage({
-    status: "complete",
+    status: 'complete',
     output: output,
   });
 });
