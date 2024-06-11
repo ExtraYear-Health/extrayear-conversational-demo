@@ -1,13 +1,12 @@
 import { Button, Switch } from '@nextui-org/react';
 import { useState } from 'react';
 
-import { Header } from '../Header';
-import { useConversation } from '../context';
+import { TranscriptMessage } from '@/lib/conversation.type';
 
+import { useConversation } from '../context';
+import { Header } from '../Header';
 import { ChatBubbles } from './ChatBubbles';
 import { Meeting, MeetingProps } from './Meeting';
-
-import { TranscriptMessage } from '@/app/lib/conversation.type';
 
 export interface ChatProps extends Pick<MeetingProps, 'audioLevel'> {
   isAssistantSpeeching?: boolean;
@@ -15,12 +14,7 @@ export interface ChatProps extends Pick<MeetingProps, 'audioLevel'> {
   transcripts?: TranscriptMessage[];
 }
 
-export function Chat({
-  audioLevel,
-  isAssistantSpeeching,
-  onEndCall,
-  transcripts = [],
-}: ChatProps) {
+export function Chat({ audioLevel, isAssistantSpeeching, onEndCall, transcripts = [] }: ChatProps) {
   const { assistant } = useConversation();
 
   const [showTranscript, setShowTranscript] = useState(true);
@@ -28,11 +22,7 @@ export function Chat({
   return (
     <div className="h-full w-full antialiased max-w-7xl mx-auto">
       <div className="flex flex-col h-full w-full">
-        <Header
-          isResponding={isAssistantSpeeching}
-          job="Cognitive Therapist"
-          name={assistant.name}
-        />
+        <Header isResponding={isAssistantSpeeching} job="Cognitive Therapist" name={assistant.name} />
 
         <div className="flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto">

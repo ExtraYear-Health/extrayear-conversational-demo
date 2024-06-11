@@ -1,18 +1,25 @@
 'use client';
 
-import { InitialScreen } from './InitialScreen';
-import { Chat } from './Chat/Chat';
-import { EndScreen } from './EndScreen';
-import { ConversationProvider, ConversationState, useConversation } from './context';
+import { envConfig } from '@/config/envConfig.client';
+import { CallStatus } from '@/lib/conversation.type';
+import { useVapi } from '@/lib/vapi/useVapi';
 
-import { useVapi } from '@/app/lib/vapi/useVapi';
-import { CallStatus } from '@/app/lib/conversation.type';
-import { envConfig } from '@/app/config/envConfig.client';
+import { Chat } from './Chat/Chat';
+import { ConversationProvider, ConversationState, useConversation } from './context';
+import { EndScreen } from './EndScreen';
+import { InitialScreen } from './InitialScreen';
 
 function Conversation() {
   const { assistantId, state, setState } = useConversation();
 
-  const { start, callStatus, transcripts = [], stop, isAssistantSpeeching, audioLevel } = useVapi({
+  const {
+    start,
+    callStatus,
+    transcripts = [],
+    stop,
+    isAssistantSpeeching,
+    audioLevel,
+  } = useVapi({
     assistantId,
     onCallStarted(_call) {
       setState(ConversationState.STARTED);

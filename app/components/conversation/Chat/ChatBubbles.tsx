@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react';
 
+import { MessageRole, TranscriptMessage } from '@/lib/conversation.type';
+
 import { LeftBubble } from '../../LeftBubble';
 import { RightBubble } from '../../RightBubble';
-
 import { useChatMessages } from './useChatMessages';
-
-import { MessageRole, TranscriptMessage } from '@/app/lib/conversation.type';
 
 export interface ChatBubblesProps {
   transcripts?: TranscriptMessage[];
@@ -36,31 +35,17 @@ export function ChatBubbles({ transcripts }: ChatBubblesProps) {
       <div className="grid grid-cols-12">
         {chatMessages.map((chatMessage) => {
           if (chatMessage.role === MessageRole.ASSISTANT) {
-            return (
-              <LeftBubble
-                key={chatMessage.id}
-                text={chatMessage.content}
-                timestamp={chatMessage.timestamp}
-              />
-            );
+            return <LeftBubble key={chatMessage.id} text={chatMessage.content} timestamp={chatMessage.timestamp} />;
           }
 
           if (chatMessage.role === MessageRole.USER) {
-            return (
-              <RightBubble
-                key={chatMessage.id}
-                text={chatMessage.content}
-              />
-            );
+            return <RightBubble key={chatMessage.id} text={chatMessage.content} />;
           }
 
           return null;
         })}
 
-        <div
-          className="h-4 md:h-16 col-start-1 col-end-13"
-          ref={chatBottomRef}
-        />
+        <div className="h-4 md:h-16 col-start-1 col-end-13" ref={chatBottomRef} />
       </div>
     </div>
   );
