@@ -9,7 +9,7 @@ input {
   border-radius: 0;
 }
 
-input[type="search"] {
+input[type='search'] {
   -webkit-appearance: none;
 }
 
@@ -17,9 +17,8 @@ input[type="search"] {
  * General stuff
  */
 :root {
-  background: #0b0b0c;
   font-size: 16px;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @media only screen and (min-width: 2000px) {
@@ -29,8 +28,6 @@ input[type="search"] {
 }
 
 body {
-  color: rgba(255, 255, 255, 0.87);
-   background: #0b0b0c; /*url("/bg.svg") no-repeat top center fixed; */
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;

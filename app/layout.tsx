@@ -1,13 +1,12 @@
-import { Inter } from 'next/font/google';
 import classNames from 'classnames';
-import localFont from 'next/font/local';
 import type { Metadata, Viewport } from 'next';
-
-import { Providers } from './providers';
-import { ToastContextProvider } from './context/Toast';
-
+import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import 'react-toastify/dist/ReactToastify.css';
+
+import { ToastContextProvider } from './context/Toast';
 import './globals.css';
+import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 const favorit = localFont({
@@ -31,23 +30,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-dvh">
-      <body
-        className={`h-full dark ${classNames(
-          favorit.variable,
-          inter.className,
-        )}`}
-      >
+      <body className={`h-full light ${classNames(favorit.variable, inter.className)}`}>
         <Providers>
-          <ToastContextProvider>
-            {children}
-          </ToastContextProvider>
+          <ToastContextProvider>{children}</ToastContextProvider>
         </Providers>
       </body>
     </html>
