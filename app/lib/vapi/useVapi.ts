@@ -1,11 +1,17 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { CallStatus, MessageRole, MessageType, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
-
+import {
+  CallStatus,
+  type Message,
+  MessageRole,
+  MessageType,
+  TranscriptMessage,
+  TranscriptMessageType,
+} from '../conversation.type';
 import { vapi } from './vapi.sdk';
 
 export interface UseVapiProps {
@@ -50,7 +56,7 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
       setAudioLevel(volume);
     };
 
-    const onMessageUpdate = (message: Message) => {
+    const onMessageUpdate = async (message: Message) => {
       if (message.type === MessageType.TRANSCRIPT) {
         setTranscripts((prevState) => {
           const lastTranscript = prevState.at(-1);
@@ -72,15 +78,48 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
         });
       }
 
-      if (message.type === MessageType.FUNCTION_CALL && message.functionCall.name === 'SendImage') {
-        const src = message.functionCall.parameters.src;
-        setTranscripts((prevState) => prevState.concat({
-          role: MessageRole.ASSISTANT,
-          timestamp: new Date().toISOString(),
-          transcript: `![exercise](${src})`,
-          transcriptType: TranscriptMessageType.FINAL,
-          type: MessageType.TRANSCRIPT,
-        }));
+      if (message.type === MessageType.FUNCTION_CALL) {
+        if (message.functionCall.name === 'SendImage') {
+          const src = message.functionCall.parameters.src;
+          setTranscripts((prevState) =>
+            prevState.concat({
+              role: MessageRole.ASSISTANT,
+              timestamp: new Date().toISOString(),
+              transcript: `![exercise](${src})`,
+              transcriptType: TranscriptMessageType.FINAL,
+              type: MessageType.TRANSCRIPT,
+            })
+          );
+          return;
+        }
+
+        if (message.functionCall.name === 'GenerateImage') {
+          const prompt = message.functionCall.parameters.prompt;
+          try {
+            const response = await fetch('/api/image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ prompt }),
+            });
+
+            const { url } = await response.json();
+
+            setTranscripts((prevState) =>
+              prevState.concat({
+                role: MessageRole.ASSISTANT,
+                timestamp: new Date().toISOString(),
+                transcript: `![exercise](${url})`,
+                transcriptType: TranscriptMessageType.FINAL,
+                type: MessageType.TRANSCRIPT,
+              })
+            );
+          } catch (e) {
+            console.error(e);
+          }
+          return;
+        }
       }
     };
 
