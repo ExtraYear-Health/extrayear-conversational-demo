@@ -6,6 +6,7 @@ import { getAssistant } from './actions';
 
 export enum ConversationState {
   IDLE = 'idle',
+  INTRO = 'intro',
   STARTED = 'started',
   ENDED = 'ended',
 }

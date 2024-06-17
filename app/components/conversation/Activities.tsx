@@ -7,11 +7,11 @@ import { useActionState } from '../../lib/hooks/useActionState';
 import { getAssistants } from './actions';
 import { useConversation } from './context';
 
-export function Settings() {
+export function Activities() {
   const { assistantId, setAssistantId } = useConversation();
 
-  const { data, dispatch, loading } = useActionState(getAssistants, []);
-  console.log(data);
+  const { data, dispatch } = useActionState(getAssistants, []);
+
   useEffect(() => {
     dispatch();
   }, []);
@@ -26,7 +26,6 @@ export function Settings() {
           role="button"
           className={`px-5 py-3 flex-1 min-w-[300px] cursor-pointer text-left border-[2px] ${assistant.id === assistantId ? 'border-primary-500' : ''}`}
           onClick={() => {
-            console.log('setAssistantId');
             setAssistantId(assistant.id);
           }}
         >
@@ -38,7 +37,7 @@ export function Settings() {
               <Image
                 isBlurred
                 width={100}
-                src="https://nextui-docs-v2.vercel.app/images/album-cover.png"
+                src="https://placehold.co/400x600/png"
                 alt="NextUI Album Cover"
               />
             </div>
