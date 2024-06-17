@@ -17,7 +17,7 @@ export interface ChatProps extends Pick<MeetingProps, 'audioLevel'> {
 export function Chat({ audioLevel, isAssistantSpeeching, onEndCall, transcripts = [] }: ChatProps) {
   const { assistant } = useConversation();
 
-  const [showTranscript, setShowTranscript] = useState(true);
+  const [showTranscript, setShowTranscript] = useState(false);
 
   return (
     <div className="h-full w-full antialiased max-w-7xl mx-auto">
