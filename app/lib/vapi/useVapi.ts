@@ -79,6 +79,7 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
       }
 
       if (message.type === MessageType.FUNCTION_CALL) {
+        console.log(message);
         if (message.functionCall.name === 'SendImage') {
           const src = message.functionCall.parameters.src;
           setTranscripts((prevState) =>
@@ -90,34 +91,6 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
               type: MessageType.TRANSCRIPT,
             })
           );
-          return;
-        }
-
-        if (message.functionCall.name === 'GenerateImage') {
-          const prompt = message.functionCall.parameters.prompt;
-          try {
-            const response = await fetch('/api/image', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ prompt }),
-            });
-
-            const { url } = await response.json();
-
-            setTranscripts((prevState) =>
-              prevState.concat({
-                role: MessageRole.ASSISTANT,
-                timestamp: new Date().toISOString(),
-                transcript: `![exercise](${url})`,
-                transcriptType: TranscriptMessageType.FINAL,
-                type: MessageType.TRANSCRIPT,
-              })
-            );
-          } catch (e) {
-            console.error(e);
-          }
           return;
         }
       }
