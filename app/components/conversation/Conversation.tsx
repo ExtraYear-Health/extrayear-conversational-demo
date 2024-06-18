@@ -10,7 +10,7 @@ import { EndScreen } from './EndScreen';
 import { InitialScreen } from './InitialScreen';
 
 function Conversation() {
-  const { assistantId, state, setState } = useConversation();
+  const { assistantId, state, setState, setVisualItems } = useConversation();
 
   const {
     start,
@@ -26,6 +26,15 @@ function Conversation() {
     },
     onCallEnded() {
       setState(ConversationState.ENDED);
+    },
+    onDisplayItems(message) {
+      const items = message.functionCall.parameters.items;
+      if (items) {
+        setVisualItems(items.split(','));
+      }
+    },
+    onHideItems() {
+      setVisualItems([]);
     },
   });
 
@@ -50,7 +59,11 @@ function Conversation() {
           isAssistantSpeeching={isAssistantSpeeching}
           audioLevel={audioLevel}
           onEndCall={() => {
-            stop();
+            if (envConfig.enableMockups) {
+              setState(ConversationState.ENDED);
+            } else {
+              stop();
+            }
           }}
         />
       );
