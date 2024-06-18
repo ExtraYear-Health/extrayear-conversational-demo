@@ -27,14 +27,7 @@ export async function POST(req: Request) {
 
     console.log('Generated Image', url);
 
-    return NextResponse.json(
-      {
-        url,
-      },
-      {
-        status: 201,
-      }
-    );
+    return NextResponse.json({ url }, { status: 201 });
   } catch (error) {
     return new NextResponse('Error processing the request', {
       status: 500,
