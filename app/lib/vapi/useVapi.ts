@@ -1,20 +1,31 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
 import { Call } from '@vapi-ai/web/dist/api';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { CallStatus, MessageRole, MessageType, TranscriptMessage, TranscriptMessageType, type Message } from '../conversation.type';
+import { CustomFunctions } from '@/types/vapi';
 
+import {
+  CallStatus,
+  FunctionCallMessage,
+  type Message,
+  MessageRole,
+  MessageType,
+  TranscriptMessage,
+  TranscriptMessageType,
+} from '../conversation.type';
 import { vapi } from './vapi.sdk';
 
 export interface UseVapiProps {
   assistantId?: string;
-  onCallStarted?: (call: Call) => void;
   onCallEnded?: () => void;
+  onCallStarted?: (call: Call) => void;
+  onDisplayItems?: (items: FunctionCallMessage) => void;
+  onHideItems?: (items: FunctionCallMessage) => void;
 }
 
-export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProps = {}) {
+export function useVapi({ onCallStarted, assistantId, onCallEnded, onDisplayItems, onHideItems }: UseVapiProps = {}) {
   const [isAssistantSpeeching, setIsAssistantSpeeching] = useState(false);
 
   const [call, setCall] = useState<Call>();
@@ -51,6 +62,7 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
     };
 
     const onMessageUpdate = (message: Message) => {
+      console.log(message);
       if (message.type === MessageType.TRANSCRIPT) {
         setTranscripts((prevState) => {
           const lastTranscript = prevState.at(-1);
@@ -72,15 +84,29 @@ export function useVapi({ onCallStarted, assistantId, onCallEnded }: UseVapiProp
         });
       }
 
-      if (message.type === MessageType.FUNCTION_CALL && message.functionCall.name === 'SendImage') {
-        const src = message.functionCall.parameters.src;
-        setTranscripts((prevState) => prevState.concat({
-          role: MessageRole.ASSISTANT,
-          timestamp: new Date().toISOString(),
-          transcript: `![exercise](${src})`,
-          transcriptType: TranscriptMessageType.FINAL,
-          type: MessageType.TRANSCRIPT,
-        }));
+      if (message.type === MessageType.FUNCTION_CALL) {
+        if (message.functionCall.name === CustomFunctions.DisplayItems) {
+          onDisplayItems?.(message);
+          return;
+        }
+
+        if (message.functionCall.name === CustomFunctions.HideItems) {
+          onHideItems?.(message);
+          return;
+        }
+
+        if (message.functionCall.name === CustomFunctions.SendImage) {
+          const src = message.functionCall.parameters.src;
+          setTranscripts((prevState) =>
+            prevState.concat({
+              role: MessageRole.ASSISTANT,
+              timestamp: new Date().toISOString(),
+              transcript: `![exercise](${src})`,
+              transcriptType: TranscriptMessageType.FINAL,
+              type: MessageType.TRANSCRIPT,
+            })
+          );
+        }
       }
     };
 

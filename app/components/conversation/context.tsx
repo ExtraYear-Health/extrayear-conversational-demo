@@ -16,6 +16,8 @@ export type ConversationContext = {
   setAssistantId?: (assistantId: string) => void;
   setState?: (state: ConversationState) => void;
   state: ConversationState;
+  visualItems?: string[];
+  setVisualItems?: (items: string[]) => void;
 };
 
 const initialState = ConversationState.IDLE;
@@ -29,6 +31,8 @@ const ConversationProvider = ({ children }) => {
 
   const [assistantId, setAssistantId] = useState<string>();
   const [assistant, setAssistant] = useState<Assistant>();
+
+  const [visualItems, setVisualItems] = useState<string[]>();
 
   useEffect(() => {
     if (assistantId) {
@@ -47,7 +51,9 @@ const ConversationProvider = ({ children }) => {
       value={{
         assistant,
         assistantId,
+        visualItems,
         setAssistantId,
+        setVisualItems,
         setState,
         state,
       }}
