@@ -1,9 +1,16 @@
-'use client';
+'use server';
 
+import { getActivities } from '@/services/getActivities';
+
+import { ConversationProvider } from './components/conversation/context';
 import { Conversation } from './components/conversation/Conversation';
 
-export default function Home() {
+export default async function Home() {
+  const activities = await getActivities();
+
   return (
-    <Conversation />
+    <ConversationProvider activities={activities}>
+      <Conversation />
+    </ConversationProvider>
   );
 }

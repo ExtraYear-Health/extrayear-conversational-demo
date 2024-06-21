@@ -5,12 +5,12 @@ import { CallStatus } from '@/lib/conversation.type';
 import { useVapi } from '@/lib/vapi/useVapi';
 
 import { Chat } from './Chat/Chat';
-import { ConversationProvider, ConversationState, useConversation } from './context';
+import { ConversationState, useConversation } from './context';
 import { EndScreen } from './EndScreen';
 import { InitialScreen } from './InitialScreen';
 
-function Conversation() {
-  const { assistantId, state, setState, setVisualItems } = useConversation();
+export function Conversation() {
+  const { activityId, state, setState, setVisualItems } = useConversation();
 
   const {
     start,
@@ -20,7 +20,7 @@ function Conversation() {
     isAssistantSpeeching,
     audioLevel,
   } = useVapi({
-    assistantId,
+    assistantId: activityId,
     onCallStarted(_call) {
       setState(ConversationState.STARTED);
     },
@@ -73,13 +73,3 @@ function Conversation() {
       return null;
   }
 }
-
-function ConversationContextAware() {
-  return (
-    <ConversationProvider>
-      <Conversation />
-    </ConversationProvider>
-  );
-}
-
-export { ConversationContextAware as Conversation };

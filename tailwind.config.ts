@@ -41,8 +41,7 @@ const config: Config = {
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
       fontFamily: {
-        favorit: ['var(--font-favorit)'],
-        inter: ['Inter', 'Arial', 'sans serif'],
+        ppmori: ['var(--font-pp-mori)'],
       },
     },
   },

@@ -1,8 +1,8 @@
-import { Assistant } from '@vapi-ai/web/dist/api';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+'use client';
 
-import { getAssistant } from './actions';
+import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+
+import { Activity } from '@/types';
 
 export enum ConversationState {
   IDLE = 'idle',
@@ -12,13 +12,14 @@ export enum ConversationState {
 }
 
 export type ConversationContext = {
-  assistant?: Assistant;
-  assistantId?: string;
-  setAssistantId?: (assistantId: string) => void;
+  activity?: Activity;
+  activityId?: string;
+  setActivityId?: (activityId: string) => void;
   setState?: (state: ConversationState) => void;
   state: ConversationState;
   visualItems?: string[];
   setVisualItems?: (items: string[]) => void;
+  activities?: Activity[];
 };
 
 const initialState = ConversationState.IDLE;
@@ -27,36 +28,33 @@ const ConversationContext = createContext<ConversationContext>({
   state: initialState,
 });
 
-const ConversationProvider = ({ children }) => {
+interface ConversationProviderProps {
+  activities?: ConversationContext['activities'];
+  children?: ReactNode;
+}
+
+const ConversationProvider = ({ children, activities }: ConversationProviderProps) => {
   const [state, setState] = useState<ConversationState>(initialState);
 
-  const [assistantId, setAssistantId] = useState<string>();
-  const [assistant, setAssistant] = useState<Assistant>();
+  const [activityId, setActivityId] = useState<string>();
+
+  const activity = useMemo(() => {
+    return activities?.find(({ id }) => id === activityId);
+  }, [activityId]);
 
   const [visualItems, setVisualItems] = useState<string[]>();
-
-  useEffect(() => {
-    if (assistantId) {
-      getAssistant(assistantId)
-        .then((assistant) => {
-          setAssistant(assistant);
-        })
-        .catch((err) => {
-          toast.error(err.message);
-        });
-    }
-  }, [assistantId]);
 
   return (
     <ConversationContext.Provider
       value={{
-        assistant,
-        assistantId,
-        visualItems,
-        setAssistantId,
-        setVisualItems,
+        activities,
+        activity,
+        activityId,
+        setActivityId,
         setState,
+        setVisualItems,
         state,
+        visualItems,
       }}
     >
       {children}

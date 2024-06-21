@@ -1,6 +1,5 @@
 import { Avatar } from '@nextui-org/react';
-
-import { VerifiedIcon } from '../icons/VerifiedIcon';
+import { BadgeCheck } from 'lucide-react';
 
 export interface HeaderProps {
   avatarImage?: string;
@@ -16,8 +15,8 @@ export function Header({ avatarImage, isResponding, job, name }: HeaderProps) {
         <Avatar src={avatarImage} />
         <div className="flex-1 overflow-hidden">
           <div className="flex items-center gap-2">
-            <div className="font-medium truncate">{name}</div>
-            <VerifiedIcon className="text-primary-500" />
+            <div className="font-regular truncate">{name}</div>
+            <BadgeCheck size={18} className="-mt-0.5 text-primary-500" />
           </div>
           <div
             className={`text-xs text-gray-500 light:text-gray-400 ${isResponding ? 'italic' : ''}`}

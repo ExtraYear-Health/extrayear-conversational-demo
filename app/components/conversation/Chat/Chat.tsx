@@ -13,12 +13,17 @@ export interface ChatProps extends Pick<MeetingProps, 'audioLevel'> {
 }
 
 export function Chat({ audioLevel, isAssistantSpeeching, onEndCall }: ChatProps) {
-  const { assistant } = useConversation();
+  const { activity } = useConversation();
 
   return (
-    <div className="h-full w-full antialiased max-w-7xl mx-auto">
-      <div className="flex flex-col h-full w-full">
-        <Header isResponding={isAssistantSpeeching} job="Cognitive Therapist" name={assistant.name} />
+    <div className="min-h-screen relative w-full antialiased max-w-7xl mx-auto">
+      <div className="flex flex-col min-h-screen w-full">
+        <Header
+          avatarImage={activity.therapist?.avatar}
+          isResponding={isAssistantSpeeching}
+          job="Cognitive Therapist"
+          name={activity.therapist?.name}
+        />
 
         <div className="flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto">

@@ -1,62 +1,67 @@
 'use client';
 
-import { Card, Image } from '@nextui-org/react';
-import { useEffect } from 'react';
+import { Tab, Tabs } from '@nextui-org/react';
+import { useMemo, useState } from 'react';
 
-import { useActionState } from '../../lib/hooks/useActionState';
-import { getAssistants } from './actions';
+import { ActivityCard } from '@/components/ui/activity-card';
+import { activityCategoriesMap } from '@/constants/activityCategories';
+import { ActivityCategoryId } from '@/types';
+
 import { useConversation } from './context';
 
 export function Activities() {
-  const { assistantId, setAssistantId } = useConversation();
+  const { activityId, setActivityId } = useConversation();
 
-  const { data, dispatch } = useActionState(getAssistants, []);
+  const [tab, selectedTab] = useState<ActivityCategoryId | 'all'>('all');
 
-  useEffect(() => {
-    dispatch();
-  }, []);
+  const { activities } = useConversation();
+
+  const cards = useMemo(() => {
+    if (!tab || tab === 'all') {
+      return activities;
+    }
+    return activities.filter(({ category }) => category.id === tab);
+  }, [tab, activities]);
 
   return (
-    <div className="flex gap-3 overflow-auto py-5">
-      {data.map((assistant) => (
-        <Card
-          key={assistant.id}
-          isPressable
-          isHoverable
-          role="button"
-          className={`px-5 py-3 flex-1 min-w-[300px] cursor-pointer text-left border-[2px] ${assistant.id === assistantId ? 'border-primary-500' : ''}`}
-          onClick={() => {
-            setAssistantId(assistant.id);
+    <div className="mt-2">
+      <div className="max-w-full overflow-x-auto py-2">
+        <Tabs
+          selectedKey={tab}
+          onSelectionChange={(value) => {
+            setActivityId(undefined);
+            selectedTab(value as ActivityCategoryId);
           }}
         >
-          <div className="flex flex-col h-full w-full">
-            <div className="text-slate-400 mb-1">w/ Michael - Social</div>
-            <div className="text-lg font-semibold h-[70px]">{assistant.name}</div>
+          <Tab key="all" title="All activity" />
+          {Array.from(activityCategoriesMap.values()).map((category) => (
+            <Tab key={category.id} title={category.name} />
+          ))}
+        </Tabs>
+      </div>
 
-            <div className="flex-1 flex justify-center mt-1 mb-6">
-              <Image
-                isBlurred
-                width={100}
-                src="https://placehold.co/400x600/png"
-                alt="NextUI Album Cover"
-              />
-            </div>
-
-            <div className="">
-              {assistant.model && (
-                <p className="text-small text-default-400 truncate">
-                  Model: {assistant.model.model}
-                </p>
-              )}
-              {assistant.transcriber && (
-                <p className="text-small text-default-400">
-                  Transcriber: {assistant.transcriber.provider} / {assistant.transcriber.model}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      ))}
+      <div className="overflow-auto py-5 max-w-full">
+        <div className="flex gap-2 md:gap-3 flex-nowrap">
+          {cards.map((activity) => (
+            <ActivityCard
+              selected={activityId === activity.id}
+              key={activity.id}
+              category={activity.category?.name}
+              title={activity.name}
+              icon={activity.category?.icon}
+              therapistName={activity.therapist?.name}
+              avatarUrl={activity.therapist?.avatar}
+              description={activity.description}
+              onClick={(event) => {
+                event.currentTarget.scrollIntoView({
+                  behavior: 'smooth',
+                });
+                setActivityId(activity.id);
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

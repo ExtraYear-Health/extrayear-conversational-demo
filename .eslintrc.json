@@ -1,5 +1,11 @@
 {
-  "extends": ["next/core-web-vitals", "eslint:recommended", "prettier", "plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "prettier",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:storybook/recommended"
+  ],
   "plugins": ["@typescript-eslint"],
   "overrides": [
     {
@@ -8,11 +14,17 @@
     }
   ],
   "rules": {
+    "import/no-anonymous-default-export": "off",
     "@next/next/no-img-element": "off",
     "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ],
     "@typescript-eslint/no-extra-semi": ["off"]
   }
 }
