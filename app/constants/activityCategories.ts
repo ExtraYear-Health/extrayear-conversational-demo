@@ -16,11 +16,6 @@ const activityCategories: ActivityCategory[] = [
     name: 'Social',
     icon: 'speech',
   },
-  {
-    id: ActivityCategoryId.Rehab,
-    name: 'Rehab',
-    icon: 'book-heart',
-  },
 ];
 
 export const activityCategoriesMap = new Map(

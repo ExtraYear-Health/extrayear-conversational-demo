@@ -20,7 +20,7 @@ export function Activities() {
     if (!tab || tab === 'all') {
       return activities;
     }
-    return activities.filter(({ category }) => category.id === tab);
+    return activities.filter(({ category }) => category?.id === tab);
   }, [tab, activities]);
 
   return (

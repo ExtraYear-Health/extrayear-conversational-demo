@@ -1,8 +1,7 @@
 export enum ActivityCategoryId {
-  Game = 'game',
-  Social = 'soc',
+  Game = 'g',
+  Social = 'sc',
   Therapy = 'tx',
-  Rehab = 'rehab',
 }
 
 export type ActivityCategory = {
