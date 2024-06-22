@@ -3,7 +3,7 @@
 import { Button } from '@nextui-org/react';
 import React from 'react';
 
-import { Settings } from './Settings';
+import { Activities } from './activities';
 import { useConversation } from './context';
 
 export interface InitialScreenProps {
@@ -11,39 +11,33 @@ export interface InitialScreenProps {
   onSubmit: () => void;
 }
 
-export const InitialScreen = ({
-  onSubmit,
-  isLoading,
-}: InitialScreenProps) => {
-  const { assistantId } = useConversation();
+export const InitialScreen = ({ onSubmit, isLoading }: InitialScreenProps) => {
+  const { activityId } = useConversation();
 
   return (
-    <div className="h-full w-full flex justify-center items-center">
-      <div className="p-3 max-w-full">
-        <div className="relative block w-full glass p-6 sm:p-8 lg:p-12 rounded-xl w-full">
-          <h2 className="font-favorit mt-2 block font-bold text-xl text-gray-100 text-center">
-            Welcome to ExtraYear&apos;s
-            <br />
-            Cognitive Rehab Tech Demo
-          </h2>
-          <div className="flex justify-center mt-4">
-            <p className="text-center text-default-400">Conversations for Cognitive Health</p>
+    <div className="w-full">
+      <div className="container mx-auto px-4">
+        <div className="py-6">
+          <div className="intro py-2">
+            <h2 className="font-semibold text-2xl md:text-3xl">Hello there,</h2>
+            <h3 className="font-semibold text-2xl md:text-3xl text-slate-300 -mt-0.75">
+              What should we do today?
+            </h3>
           </div>
-          <div className="my-5">
-            <Settings />
-          </div>
-          <div className="mt-6">
-            <Button
-              className="mt-4 disabled"
-              color="primary"
-              fullWidth
-              isDisabled={!assistantId}
-              isLoading={isLoading}
-              onClick={onSubmit}
-              size="lg"
-            >
-              {isLoading ? 'Loading...' : `Click here to start`}
-            </Button>
+          <div className="max-w-full">
+            <Activities />
+
+            <div className="mt-6">
+              <Button
+                color="primary"
+                isDisabled={!activityId}
+                isLoading={isLoading}
+                onClick={onSubmit}
+                size="lg"
+              >
+                {isLoading ? 'Loading...' : `Click here to start`}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

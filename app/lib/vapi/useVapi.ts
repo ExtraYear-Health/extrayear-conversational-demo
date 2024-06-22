@@ -4,7 +4,7 @@ import { Call } from '@vapi-ai/web/dist/api';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { CustomFunctions } from '@/types/vapi';
+import { CustomFunctions } from '@/lib/vapi/types';
 
 import {
   CallStatus,
@@ -25,7 +25,13 @@ export interface UseVapiProps {
   onHideItems?: (items: FunctionCallMessage) => void;
 }
 
-export function useVapi({ onCallStarted, assistantId, onCallEnded, onDisplayItems, onHideItems }: UseVapiProps = {}) {
+export function useVapi({
+  onCallStarted,
+  assistantId,
+  onCallEnded,
+  onDisplayItems,
+  onHideItems,
+}: UseVapiProps = {}) {
   const [isAssistantSpeeching, setIsAssistantSpeeching] = useState(false);
 
   const [call, setCall] = useState<Call>();

@@ -1,18 +1,22 @@
-import { Inter } from 'next/font/google';
 import classNames from 'classnames';
-import localFont from 'next/font/local';
 import type { Metadata, Viewport } from 'next';
-
-import { Providers } from './providers';
-import { ToastContextProvider } from './context/Toast';
-
+import localFont from 'next/font/local';
 import 'react-toastify/dist/ReactToastify.css';
-import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
-const favorit = localFont({
-  src: './fonts/ABCFavorit-Bold.woff2',
-  variable: '--font-favorit',
+import { ToastContextProvider } from './context/Toast';
+import './globals.css';
+import { Providers } from './providers';
+
+const ppmori = localFont({
+  variable: '--font-pp-mori',
+  src: [
+    { path: './fonts/PPMori-Extralight.otf', weight: '300', style: 'normal' },
+    { path: './fonts/PPMori-Regular.otf', weight: '400', style: 'normal' },
+    { path: './fonts/PPMori-SemiBold.otf', weight: '600', style: 'normal' },
+    { path: './fonts/PPMori-ExtralightItalic.otf', weight: '300', style: 'italic' },
+    { path: './fonts/PPMori-RegularItalic.otf', weight: '400', style: 'italic' },
+    { path: './fonts/PPMori-SemiBoldItalic.otf', weight: '600', style: 'italic' },
+  ],
 });
 
 export const viewport: Viewport = {
@@ -31,23 +35,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-dvh">
-      <body
-        className={`h-full dark ${classNames(
-          favorit.variable,
-          inter.className,
-        )}`}
-      >
+      <body className={`min-h-full light ${classNames(ppmori.className)}`}>
         <Providers>
-          <ToastContextProvider>
-            {children}
-          </ToastContextProvider>
+          <ToastContextProvider>{children}</ToastContextProvider>
         </Providers>
       </body>
     </html>

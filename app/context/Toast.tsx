@@ -19,7 +19,13 @@ const ToastContextProvider = ({ children }: ToastContextInterface) => {
     <ToastContext.Provider value={{ toast }}>
       <>
         {children}
-        <ToastContainer position="bottom-center" autoClose={8000} theme="dark" limit={1} transition={Bounce} />
+        <ToastContainer
+          position="bottom-center"
+          autoClose={8000}
+          theme="light"
+          limit={1}
+          transition={Bounce}
+        />
       </>
     </ToastContext.Provider>
   );
